@@ -26,6 +26,7 @@
   },
   "exports": {
     ".": "./src/index.ts",
+    "./access-control": "./src/access-control.ts",
     "./client": "./src/client.ts",
     "./next": "./src/next.ts",
     "./schema": "./src/schema.ts",

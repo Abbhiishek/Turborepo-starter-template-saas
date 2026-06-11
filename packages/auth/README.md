@@ -1,92 +1,157 @@
 # @workspace/auth
 
-Shared Better Auth configuration for apps and servers in this monorepo.
+Shared Better Auth package for the workspace.
 
-This package is intentionally a factory, not a single mandatory auth instance.
-Each app should create its own small `auth.ts`, `auth-client.ts`, and optional
-`auth-types.ts` files by calling the shared helpers from this package.
+This package owns the common auth foundation: the database adapter, runtime
+environment parsing, shared session defaults, feature toggles, and reusable
+organization access-control helpers. It does not force every app to use the same
+auth surface. Each app should create its own small server/client auth modules
+and opt into the features it actually needs.
 
-That gives every app its own plugin surface:
+## Design Goals
 
-- A B2B app can enable `organization`, `admin`, GitHub login, and org hooks.
-- A B2C app can stay simple with email/password, username, Google One Tap, or passkeys.
-- An internal API can expose OpenAPI/admin endpoints without forcing those plugins into public apps.
+- Keep identity centralized while keeping app auth configuration local.
+- Let each app choose its Better Auth plugins without affecting other apps.
+- Keep organization roles scoped to Better Auth membership rows.
+- Make organization permissions plug-and-play per app.
+- Keep generated schema configuration explicit and reproducible.
+- Provide safe defaults, but allow app overrides everywhere they matter.
 
-## What is already supported?
+## Mental Model
 
-Yes, the current package supports pluggable auth per app.
+| Concern                                               | Owner                                       |
+| ----------------------------------------------------- | ------------------------------------------- |
+| User identity, sessions, accounts                     | Better Auth tables in `@workspace/db`       |
+| Shared Drizzle adapter, env parsing, session defaults | `packages/auth`                             |
+| App-specific server plugin list                       | `apps/<app>/lib/auth.ts`                    |
+| App-specific client plugin list                       | `apps/<app>/lib/auth-client.ts`             |
+| App-specific access control                           | `apps/<app>/lib/access-control.ts`          |
+| App-specific inferred auth types                      | `apps/<app>/lib/auth-types.ts`              |
+| Next.js route handler                                 | `apps/<app>/app/api/auth/[...all]/route.ts` |
+| Schema-affecting plugin superset                      | `packages/auth/src/schema.ts`               |
 
-The built-in `features` object covers the common plugins we want often:
+`owner`, `admin`, and `member` are organization membership roles stored on the
+Better Auth `member` table. Their permissions should be interpreted by the app
+that is currently running. Do not create product-specific role names just to
+change what `member` means in one app.
+
+## Package Exports
+
+### `@workspace/auth`
+
+Root export for shared server helpers and default access-control helpers.
 
 ```ts
-features: {
-  admin: true,
-  organization: true,
-  openAPI: true,
-}
+export {
+  auth,
+  createAuth,
+  createAuthOptions,
+  createAuthPlugins,
+  getAuthFeaturesFromEnv,
+} from "@workspace/auth";
+
+export {
+  ac,
+  admin,
+  createWorkspaceAccessControl,
+  defaultAppRoleStatements,
+  defaultAppStatement,
+  defaultWorkspaceAccessControl,
+  member,
+  organizationStatement,
+  owner,
+  roles,
+  statement,
+} from "@workspace/auth";
 ```
 
-For everything else, pass Better Auth plugins directly through `features.plugins`.
-For app-specific Better Auth options, pass them directly to `createAuth`. The
-factory keeps the shared Drizzle adapter, env defaults, and session defaults,
-then merges your app-specific options.
+Prefer importing from explicit subpaths in app code:
 
 ```ts
 import { createAuth } from "@workspace/auth/server";
-import { username } from "better-auth/plugins";
+import { createWorkspaceAuthClient } from "@workspace/auth/client";
+import { createWorkspaceAccessControl } from "@workspace/auth/access-control";
+```
 
-export const auth = createAuth({
-  features: {
-    plugins: [username()],
-  },
-  socialProviders: {
-    github: {
-      clientId: process.env.GITHUB_CLIENT_ID!,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-    },
-  },
-  databaseHooks: {
-    user: {
-      create: {
-        before: async (user) => ({
-          data: {
-            ...user,
-            name: user.name.trim(),
-          },
-        }),
-      },
-    },
-  },
-});
+### `@workspace/auth/server`
+
+Server-side Better Auth factory and default instance.
+
+| Export                         | Purpose                                                                   |
+| ------------------------------ | ------------------------------------------------------------------------- |
+| `createAuth(options?)`         | Creates a Better Auth instance with shared defaults.                      |
+| `createAuthOptions(options?)`  | Creates the Better Auth options object without constructing the instance. |
+| `createAuthPlugins(features?)` | Converts feature flags into Better Auth plugins.                          |
+| `getAuthFeaturesFromEnv(env?)` | Reads feature flags from env.                                             |
+| `auth`                         | Default auth instance using runtime env feature flags.                    |
+| `AuthFeatureFlags`             | Feature flag type.                                                        |
+| `CreateAuthOptions`            | Factory options type.                                                     |
+
+### `@workspace/auth/client`
+
+Client-side Better Auth factory and default client.
+
+| Export                                | Purpose                                                   |
+| ------------------------------------- | --------------------------------------------------------- |
+| `createWorkspaceAuthClient(options?)` | Creates a Better Auth React client with selected plugins. |
+| `authClient`                          | Default client without optional plugins enabled.          |
+
+### `@workspace/auth/access-control`
+
+Organization access-control helpers.
+
+| Export                                   | Purpose                                               |
+| ---------------------------------------- | ----------------------------------------------------- |
+| `createWorkspaceAccessControl(options?)` | Factory for app-specific organization access control. |
+| `defaultWorkspaceAccessControl`          | Default access-control preset.                        |
+| `ac`                                     | Default Better Auth access-control instance.          |
+| `roles`                                  | Default role map.                                     |
+| `owner`, `admin`, `member`               | Default role objects.                                 |
+| `statement`                              | Default merged statement map.                         |
+| `organizationStatement`                  | Better Auth's built-in organization statement map.    |
+| `defaultAppStatement`                    | Workspace sample app resources.                       |
+| `defaultAppRoleStatements`               | Workspace sample app role grants.                     |
+| `CreateWorkspaceAccessControlOptions`    | Factory options type.                                 |
+| `CreateWorkspaceRolesContext`            | Role factory callback context type.                   |
+| `WorkspaceRoles`                         | Role map type.                                        |
+| `WorkspaceRoleStatements`                | Role statement override type.                         |
+
+### `@workspace/auth/next`
+
+Exports `GET` and `POST` handlers for the default `auth` instance.
+
+Use this only when an app intentionally wants the package-level default auth
+instance. Most production apps should create their own route handler from their
+local `auth`.
+
+### `@workspace/auth/schema`
+
+Better Auth schema-generation config. Used by:
+
+```bash
+pnpm --filter @workspace/auth auth:generate
+pnpm --filter @workspace/auth auth:info
 ```
 
 ## Recommended App Layout
 
-Use this pattern inside each app:
-
 ```txt
 apps/
-  b2b/
+  web/
     app/api/auth/[...all]/route.ts
-    lib/auth.ts
-    lib/auth-client.ts
-    lib/auth-types.ts
-  b2c/
-    app/api/auth/[...all]/route.ts
+    lib/access-control.ts
     lib/auth.ts
     lib/auth-client.ts
     lib/auth-types.ts
 ```
 
-The shared package stays in `packages/auth`. App-specific plugin choices stay
-inside the app.
+Keep package-level defaults in `packages/auth`. Keep app decisions inside the
+app.
 
-## Server Comparison
+## Quick Start: Plain App
 
-### Plain App
-
-Use this for an app that only needs email/password, sessions, and any shared
-social providers configured by env.
+Use this when an app only needs email/password, sessions, and env-configured
+social providers.
 
 ```ts
 // apps/plain/lib/auth.ts
@@ -106,19 +171,257 @@ import { auth } from "@/lib/auth";
 export const { GET, POST } = toNextJsHandler(auth);
 ```
 
-### B2B App With Organization, Admin, GitHub, And Hooks
+```ts
+// apps/plain/lib/auth-client.ts
+import { createWorkspaceAuthClient } from "@workspace/auth/client";
 
-Use this when an app needs organization membership, team support, admin APIs,
-account linking via social providers, and app-specific database hooks.
+export const authClient = createWorkspaceAuthClient({
+  baseURL: process.env.NEXT_PUBLIC_APP_URL,
+});
+```
+
+## Quick Start: Organization App
+
+Use this when an app needs organization membership, invitations, teams, and
+permission checks.
+
+```ts
+// apps/b2b/lib/access-control.ts
+import { createWorkspaceAccessControl } from "@workspace/auth/access-control";
+
+export const b2bAccess = createWorkspaceAccessControl({
+  statement: {
+    project: ["create", "read", "update", "delete"],
+    billing: ["read", "update"],
+    auditLog: ["read"],
+  },
+  roleStatements: {
+    owner: {
+      project: ["create", "read", "update", "delete"],
+      billing: ["read", "update"],
+      auditLog: ["read"],
+    },
+    admin: {
+      project: ["create", "read", "update", "delete"],
+      billing: ["read"],
+      auditLog: ["read"],
+    },
+    member: {
+      project: ["read"],
+    },
+  },
+});
+```
 
 ```ts
 // apps/b2b/lib/auth.ts
 import { createAuth } from "@workspace/auth/server";
-import { username } from "better-auth/plugins";
+import { nextCookies } from "better-auth/next-js";
+
+import { b2bAccess } from "./access-control";
 
 export const auth = createAuth({
-  baseURL: process.env.B2B_AUTH_URL,
-  trustedOrigins: ["https://b2b.example.com"],
+  baseURL: process.env.BETTER_AUTH_URL,
+  trustedOrigins: [process.env.NEXT_PUBLIC_APP_URL].filter(
+    (origin): origin is string => Boolean(origin),
+  ),
+  features: {
+    organization: {
+      ac: b2bAccess.ac,
+      roles: b2bAccess.roles,
+      teams: {
+        enabled: true,
+      },
+    },
+    plugins: [nextCookies()],
+  },
+});
+```
+
+```ts
+// apps/b2b/lib/auth-client.ts
+import { createWorkspaceAuthClient } from "@workspace/auth/client";
+
+import { b2bAccess } from "./access-control";
+
+export const authClient = createWorkspaceAuthClient({
+  baseURL: process.env.NEXT_PUBLIC_APP_URL,
+  features: {
+    organization: {
+      ac: b2bAccess.ac,
+      roles: b2bAccess.roles,
+      teams: {
+        enabled: true,
+      },
+    },
+  },
+});
+```
+
+```ts
+// apps/b2b/app/api/auth/[...all]/route.ts
+import { toNextJsHandler } from "better-auth/next-js";
+
+import { auth } from "@/lib/auth";
+
+export const { GET, POST } = toNextJsHandler(auth);
+```
+
+## Access Control
+
+Better Auth requires two values for typed organization permissions:
+
+- `ac`: the access-control instance created from a statement map.
+- `roles`: a role map created from the same `ac`.
+
+`createWorkspaceAccessControl` builds both values and keeps Better Auth's
+built-in organization permissions in every role.
+
+### Default Preset
+
+Calling the factory with no options uses the default app preset:
+
+```ts
+import { createWorkspaceAccessControl } from "@workspace/auth/access-control";
+
+export const access = createWorkspaceAccessControl();
+```
+
+The preset includes:
+
+```ts
+project: ["create", "read", "update", "delete"];
+billing: ["read", "update"];
+auditLog: ["read"];
+```
+
+Default app grants:
+
+| Role     | Project                      | Billing      | Audit Log |
+| -------- | ---------------------------- | ------------ | --------- |
+| `owner`  | create, read, update, delete | read, update | read      |
+| `admin`  | create, read, update, delete | read         | read      |
+| `member` | read                         | none         | none      |
+
+### App-Specific Resources
+
+If an app passes `statement`, it owns all app-specific resources and role
+grants. The default sample resources are not inherited.
+
+```ts
+export const supportAccess = createWorkspaceAccessControl({
+  statement: {
+    ticket: ["create", "read", "update", "close"],
+    report: ["read"],
+  },
+  roleStatements: {
+    owner: {
+      ticket: ["create", "read", "update", "close"],
+      report: ["read"],
+    },
+    admin: {
+      ticket: ["create", "read", "update", "close"],
+      report: ["read"],
+    },
+    member: {
+      ticket: ["create", "read"],
+    },
+  },
+});
+```
+
+### Additional Roles
+
+Use the `roles` callback when an app needs roles beyond `owner`, `admin`, and
+`member`.
+
+```ts
+export const docsAccess = createWorkspaceAccessControl({
+  statement: {
+    document: ["create", "read", "update", "delete", "publish"],
+  },
+  roleStatements: {
+    owner: {
+      document: ["create", "read", "update", "delete", "publish"],
+    },
+    admin: {
+      document: ["create", "read", "update", "publish"],
+    },
+    member: {
+      document: ["read"],
+    },
+  },
+  roles: ({ ac, defaultRoles }) => ({
+    ...defaultRoles,
+    editor: ac.newRole({
+      document: ["create", "read", "update"],
+    }),
+    viewer: ac.newRole({
+      document: ["read"],
+    }),
+  }),
+});
+```
+
+### Static Role Checks
+
+Static checks answer whether a role definition contains a permission. They do
+not validate the logged-in user's session or active organization.
+
+```ts
+import { b2bAccess } from "./access-control";
+
+const canAdminReadAuditLog = b2bAccess.roles.admin.authorize({
+  auditLog: ["read"],
+}).success;
+```
+
+Use static checks for local UI decisions, not for authorization boundaries.
+
+## Server API
+
+### `createAuth(options?)`
+
+Creates a Better Auth instance with these shared defaults:
+
+- Drizzle adapter connected to `@workspace/db`.
+- `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL` from env unless overridden.
+- Trusted origins from `BETTER_AUTH_TRUSTED_ORIGINS`, `AUTH_TRUSTED_ORIGINS`,
+  and `trustedOrigins`.
+- Email/password enabled with auto sign-in and password-reset session revoke.
+- GitHub/Google providers when their env vars are present.
+- Session defaults with compact cookie cache.
+- Plugins from `features` or runtime env flags.
+
+```ts
+import { createAuth } from "@workspace/auth/server";
+
+export const auth = createAuth({
+  baseURL: "https://app.example.com",
+  trustedOrigins: ["https://app.example.com"],
+  emailAndPassword: {
+    autoSignIn: false,
+  },
+});
+```
+
+### Feature Flags
+
+```ts
+export const auth = createAuth({
+  features: {
+    admin: true,
+    organization: true,
+    openAPI: true,
+  },
+});
+```
+
+Boolean feature flags enable the shared defaults. Object feature flags pass
+options into the Better Auth plugin.
+
+```ts
+export const auth = createAuth({
   features: {
     admin: {
       adminRoles: ["admin", "support"],
@@ -127,112 +430,91 @@ export const auth = createAuth({
       teams: {
         enabled: true,
       },
+      disableOrganizationDeletion: true,
     },
+  },
+});
+```
+
+### Custom Plugins
+
+Use `features.plugins` for plugins that are not modeled by the common feature
+flags.
+
+```ts
+import { username } from "better-auth/plugins";
+
+export const auth = createAuth({
+  features: {
     plugins: [
       username({
         minUsernameLength: 3,
       }),
     ],
   },
-  socialProviders: {
-    github: {
-      clientId: process.env.B2B_GITHUB_CLIENT_ID!,
-      clientSecret: process.env.B2B_GITHUB_CLIENT_SECRET!,
-      mapProfileToUser: (profile) => ({
-        name: profile.name ?? profile.login,
-      }),
-    },
-  },
-  databaseHooks: {
-    user: {
-      create: {
-        after: async (user) => {
-          // Create app-specific profile, audit row, CRM sync, etc.
-          console.log("B2B user created", user.id);
-        },
-      },
-    },
-  },
 });
 ```
 
-### B2C App With Username, Passkey, One Tap, And No Organization
-
-Use this when an app is public-facing and should not expose organization/admin
-endpoints.
+For Next.js apps, keep `nextCookies()` in the app and put it last.
 
 ```ts
-// apps/b2c/lib/auth.ts
-import { passkey } from "@better-auth/passkey";
-import { createAuth } from "@workspace/auth/server";
-import { oneTap, username } from "better-auth/plugins";
-
-export const auth = createAuth({
-  baseURL: process.env.B2C_AUTH_URL,
-  features: {
-    plugins: [
-      username(),
-      oneTap(),
-      passkey({
-        rpID: "b2c.example.com",
-        rpName: "B2C App",
-      }),
-    ],
-  },
-  socialProviders: {
-    google: {
-      clientId: process.env.B2C_GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.B2C_GOOGLE_CLIENT_SECRET!,
-    },
-  },
-});
-```
-
-Install plugin packages that are not part of `better-auth` itself:
-
-```bash
-pnpm add @better-auth/passkey --filter b2c
-```
-
-### Internal API With OpenAPI And Admin Only
-
-Use this for an internal server that needs auth endpoints for tools or
-automation, but no organization client surface.
-
-```ts
-// apps/internal-api/lib/auth.ts
-import { createAuth } from "@workspace/auth/server";
-
-export const auth = createAuth({
-  baseURL: process.env.INTERNAL_API_AUTH_URL,
-  features: {
-    admin: true,
-    openAPI: true,
-  },
-});
-```
-
-## Next.js Cookie Support
-
-For Next.js apps, you can pass `nextCookies()` as an app-specific plugin. Keep
-it in the app because non-Next servers should not depend on Next cookies.
-
-```ts
-// apps/web/lib/auth.ts
-import { createAuth } from "@workspace/auth/server";
 import { nextCookies } from "better-auth/next-js";
 
 export const auth = createAuth({
   features: {
-    plugins: [
-      // Better Auth recommends this as the last plugin in a Next.js app.
-      nextCookies(),
-    ],
+    plugins: [nextCookies()],
   },
 });
 ```
 
-For protected Next.js pages/routes, prefer full server validation:
+### Server Permission Checks
+
+Use `auth.api.hasPermission` for server-side authorization. If
+`organizationId` is omitted, Better Auth uses the active organization stored in
+the session.
+
+```ts
+"use server";
+
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+
+export async function createProject() {
+  const result = await auth.api.hasPermission({
+    headers: await headers(),
+    body: {
+      permissions: {
+        project: ["create"],
+      },
+    },
+  });
+
+  if (!result.success) {
+    throw new Error("You do not have permission to create projects.");
+  }
+
+  // Create the project.
+}
+```
+
+For checks against a specific organization:
+
+```ts
+const result = await auth.api.hasPermission({
+  headers: await headers(),
+  body: {
+    organizationId,
+    permissions: {
+      billing: ["update"],
+    },
+  },
+});
+```
+
+### Session Checks
+
+Protected server code should validate the session with Better Auth, not by
+reading cookies directly.
 
 ```ts
 import { auth } from "@/lib/auth";
@@ -252,69 +534,102 @@ export default async function DashboardPage() {
 }
 ```
 
-Cookie-only checks are useful for optimistic redirects, but they are not a
-security boundary. Protected actions should still call `auth.api.getSession`.
+## Client API
 
-## Client Comparison
+### `createWorkspaceAuthClient(options?)`
 
-Client plugin selection should match the server plugin selection for that app.
-
-### Plain Client
+Creates a Better Auth React client with selected client plugins.
 
 ```ts
-// apps/plain/lib/auth-client.ts
 import { createWorkspaceAuthClient } from "@workspace/auth/client";
 
 export const authClient = createWorkspaceAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_PLAIN_AUTH_URL,
+  baseURL: process.env.NEXT_PUBLIC_APP_URL,
 });
 ```
 
-### B2B Client With Organization, Admin, And Username
+### Organization Client
+
+Client plugin selection should mirror the server plugin selection for that app.
+If the server uses app-specific `ac` and `roles`, the client should use the same
+values.
 
 ```ts
-// apps/b2b/lib/auth-client.ts
 import { createWorkspaceAuthClient } from "@workspace/auth/client";
-import { usernameClient } from "better-auth/client/plugins";
+
+import { b2bAccess } from "./access-control";
 
 export const authClient = createWorkspaceAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_B2B_AUTH_URL,
   features: {
-    organization: true,
-    admin: true,
-    plugins: [usernameClient()],
+    organization: {
+      ac: b2bAccess.ac,
+      roles: b2bAccess.roles,
+      teams: {
+        enabled: true,
+      },
+    },
   },
 });
 ```
 
-### B2C Client With Username, Passkey, And One Tap
+### Client Permission Checks
 
-```ts
-// apps/b2c/lib/auth-client.ts
-import { passkeyClient } from "@better-auth/passkey/client";
-import { createWorkspaceAuthClient } from "@workspace/auth/client";
-import { oneTapClient, usernameClient } from "better-auth/client/plugins";
+Use the `hasPermission` endpoint when the decision must reflect the current
+session, active organization, and stored member role.
 
-export const authClient = createWorkspaceAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_B2C_AUTH_URL,
-  features: {
-    plugins: [
-      usernameClient(),
-      passkeyClient(),
-      oneTapClient({
-        clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
-        autoSelect: false,
-        cancelOnTapOutside: true,
-      }),
-    ],
+```tsx
+"use client";
+
+import { authClient } from "@/lib/auth-client";
+
+export async function canOpenBillingSettings() {
+  const { data, error } = await authClient.organization.hasPermission({
+    permissions: {
+      billing: ["update"],
+    },
+  });
+
+  if (error) {
+    return false;
+  }
+
+  return data.success;
+}
+```
+
+Use `checkRolePermission` for UI-only checks against a known role.
+
+```tsx
+const canAdminReadAuditLog = authClient.organization.checkRolePermission({
+  role: "admin",
+  permissions: {
+    auditLog: ["read"],
   },
 });
 ```
 
-## Types
+### Client Session Hook
 
-If an app needs auth-derived types, create `auth-types.ts` beside that app's
-`auth.ts`. This keeps B2B organization/admin types separate from simpler apps.
+```tsx
+"use client";
+
+import { authClient } from "@/lib/auth-client";
+
+export function CurrentUser() {
+  const { data: session, isPending } = authClient.useSession();
+
+  if (isPending) {
+    return <span>Loading...</span>;
+  }
+
+  return <span>{session?.user.name ?? "Signed out"}</span>;
+}
+```
+
+## App Types
+
+Create auth-derived types beside each app's local auth instance. This keeps B2B
+organization/admin types separate from simpler apps.
 
 ```ts
 // apps/b2b/lib/auth-types.ts
@@ -324,47 +639,155 @@ export type Session = typeof auth.$Infer.Session;
 export type User = Session["user"];
 ```
 
-For a client component:
+For client-side inferred organization models:
 
-```tsx
-"use client";
+```ts
+// apps/b2b/lib/auth-client-types.ts
+import type { authClient } from "./auth-client";
 
-import { authClient } from "@/lib/auth-client";
+export type ActiveOrganization = typeof authClient.$Infer.ActiveOrganization;
+```
 
-export function CurrentUser() {
-  const { data: session } = authClient.useSession();
+## Environment Variables
 
-  return <span>{session?.user.name}</span>;
-}
+| Variable                                    | Purpose                                                     |
+| ------------------------------------------- | ----------------------------------------------------------- |
+| `DATABASE_URL`                              | Database connection string used by `@workspace/db`.         |
+| `BETTER_AUTH_SECRET`                        | Better Auth secret. Must be set in production.              |
+| `BETTER_AUTH_URL`                           | Canonical auth base URL.                                    |
+| `BETTER_AUTH_TRUSTED_ORIGINS`               | Comma-separated trusted origins.                            |
+| `AUTH_TRUSTED_ORIGINS`                      | Additional comma-separated trusted origins.                 |
+| `AUTH_FEATURES`                             | Comma-separated feature list, such as `admin,organization`. |
+| `AUTH_ADMIN_ENABLED`                        | Explicitly enable admin plugin when set to `true`.          |
+| `AUTH_ADMIN_ROLES`                          | Comma-separated Better Auth admin roles.                    |
+| `AUTH_ADMIN_USER_IDS`                       | Comma-separated admin user IDs.                             |
+| `AUTH_ORGANIZATION_ENABLED`                 | Explicitly enable organization plugin when set to `true`.   |
+| `AUTH_ORGANIZATION_TEAMS_ENABLED`           | Enable organization teams when set to `true`.               |
+| `AUTH_OPENAPI_ENABLED`                      | Explicitly enable OpenAPI plugin when set to `true`.        |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | Optional GitHub OAuth credentials.                          |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Optional Google OAuth credentials.                          |
+
+`AUTH_FEATURES` accepts both dashed and compact names. For example, `open-api`
+and `openapi` both enable the OpenAPI feature.
+
+```env
+BETTER_AUTH_SECRET="replace-with-at-least-32-random-characters"
+BETTER_AUTH_URL="http://localhost:3000"
+BETTER_AUTH_TRUSTED_ORIGINS="http://localhost:3000"
+AUTH_FEATURES="admin,organization"
+AUTH_ADMIN_ROLES="admin"
+AUTH_ORGANIZATION_TEAMS_ENABLED="true"
 ```
 
 ## Schema And Migrations
 
-`pnpm --filter @workspace/auth auth:generate` generates the Better Auth Drizzle
-schema into `packages/db/src/schema/auth.ts`.
+`packages/auth/src/schema.ts` is the Better Auth schema-generation entrypoint.
+It should include every schema-affecting plugin that the monorepo needs.
 
-Important: the generated schema must include every plugin that needs database
-tables or columns. The current schema config enables admin and organization/team
-support. If an app adds a schema-affecting plugin such as username or passkey,
-also add that plugin to `packages/auth/src/schema.ts`, regenerate the schema,
-and generate a Drizzle migration.
+Generate the Better Auth Drizzle schema:
 
 ```bash
 pnpm --filter @workspace/auth auth:generate
+```
+
+Inspect Better Auth schema info:
+
+```bash
+pnpm --filter @workspace/auth auth:info
+```
+
+Then generate and apply database migrations from `@workspace/db`:
+
+```bash
 pnpm --filter @workspace/db db:generate
 pnpm --filter @workspace/db db:migrate
 ```
 
-## Mental Model
+Access-control statements and static roles do not add tables by themselves.
+Dynamic access control can be schema-affecting, so add it to
+`packages/auth/src/schema.ts` before generating schema if an app uses it.
 
-| Concern                                               | Put It In                                   |
-| ----------------------------------------------------- | ------------------------------------------- |
-| Shared Drizzle adapter, session defaults, env parsing | `packages/auth`                             |
-| App-specific server plugin list                       | `apps/<app>/lib/auth.ts`                    |
-| App-specific client plugin list                       | `apps/<app>/lib/auth-client.ts`             |
-| App-specific inferred auth types                      | `apps/<app>/lib/auth-types.ts`              |
-| Next route handler                                    | `apps/<app>/app/api/auth/[...all]/route.ts` |
-| Schema-affecting plugin superset                      | `packages/auth/src/schema.ts`               |
+## Common Patterns
 
-Do not enable every plugin globally just because one app needs it. Enable only
-the server and client plugins that each app actually consumes.
+### B2C App Without Organizations
+
+```ts
+import { createAuth } from "@workspace/auth/server";
+
+export const auth = createAuth({
+  baseURL: process.env.B2C_AUTH_URL,
+  features: {
+    organization: false,
+    admin: false,
+  },
+});
+```
+
+### B2B App With Organizations And Admin
+
+```ts
+export const auth = createAuth({
+  features: {
+    admin: {
+      adminRoles: ["admin", "support"],
+    },
+    organization: {
+      ac: b2bAccess.ac,
+      roles: b2bAccess.roles,
+      teams: {
+        enabled: true,
+      },
+    },
+  },
+});
+```
+
+### Internal API With OpenAPI
+
+```ts
+export const auth = createAuth({
+  baseURL: process.env.INTERNAL_API_AUTH_URL,
+  features: {
+    admin: true,
+    openAPI: true,
+  },
+});
+```
+
+### App With Passkeys Or External Plugins
+
+Install the plugin package in the app workspace and pass the plugin through
+`features.plugins`.
+
+```bash
+pnpm add @better-auth/passkey --filter web
+```
+
+```ts
+import { passkey } from "@better-auth/passkey";
+
+export const auth = createAuth({
+  features: {
+    plugins: [
+      passkey({
+        rpID: "app.example.com",
+        rpName: "Example App",
+      }),
+    ],
+  },
+});
+```
+
+## Production Rules
+
+- Create one local `auth.ts` per app.
+- Create one local `auth-client.ts` per app.
+- Keep server and client organization plugin options in sync.
+- Define app-specific access control beside the app.
+- Use `auth.api.hasPermission` for real authorization boundaries.
+- Use `checkRolePermission` only for static UI decisions.
+- Do not treat global app admins and organization admins as the same concept.
+- Do not enable every plugin globally because one app needs it.
+- Update `packages/auth/src/schema.ts` before generating schema for any
+  schema-affecting plugin.
+- Always set `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL` in production.

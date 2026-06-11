@@ -1,12 +1,17 @@
 import { createAuthClient } from "better-auth/react";
 import { adminClient, organizationClient } from "better-auth/client/plugins";
 
+import { ac, roles } from "./access-control";
+
 type AuthClientOptions = NonNullable<Parameters<typeof createAuthClient>[0]>;
 type AuthClientPlugin = NonNullable<AuthClientOptions["plugins"]>[number];
+type OrganizationClientOptions = NonNullable<
+  Parameters<typeof organizationClient>[0]
+>;
 
 export type AuthClientFeatureFlags = {
   admin?: boolean;
-  organization?: boolean;
+  organization?: boolean | OrganizationClientOptions;
   plugins?: AuthClientPlugin[];
 };
 
@@ -19,9 +24,17 @@ export function createWorkspaceAuthClient(
 ) {
   const { features = {}, ...clientOptions } = options;
   const plugins: AuthClientPlugin[] = [];
+  const organizationOptions =
+    features.organization === true ? {} : features.organization;
 
-  if (features.organization) {
-    plugins.push(organizationClient());
+  if (organizationOptions) {
+    plugins.push(
+      organizationClient({
+        ac,
+        roles,
+        ...organizationOptions,
+      }),
+    );
   }
 
   if (features.admin) {

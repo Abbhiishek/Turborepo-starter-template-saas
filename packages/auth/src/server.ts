@@ -4,6 +4,7 @@ import { admin, openAPI, organization } from "better-auth/plugins";
 
 import { db } from "@workspace/db";
 
+import { ac, roles } from "./access-control";
 import {
   flagEnabled,
   getRuntimeEnv,
@@ -44,6 +45,16 @@ function normalizeFeatureOptions<T extends object>(
   return value === true ? ({} as T) : value;
 }
 
+function withDefaultOrganizationAccessControl(
+  options: OrganizationOptions,
+): OrganizationOptions {
+  return {
+    ac,
+    roles,
+    ...options,
+  };
+}
+
 export function getAuthFeaturesFromEnv(
   env: AuthRuntimeEnv = getRuntimeEnv(),
 ): AuthFeatureFlags {
@@ -78,7 +89,9 @@ export function createAuthPlugins(
   const organizationOptions = normalizeFeatureOptions(features.organization);
 
   if (organizationOptions) {
-    plugins.push(organization(organizationOptions));
+    plugins.push(
+      organization(withDefaultOrganizationAccessControl(organizationOptions)),
+    );
   }
 
   if (adminOptions) {
