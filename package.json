@@ -1,5 +1,5 @@
 {
-  "name": "project-stack-template",
+  "name": "Full Stack Monorepo Template",
   "private": true,
   "scripts": {
     "build": "turbo run build",
@@ -19,7 +19,7 @@
       "zod": "catalog:"
     }
   },
-  "packageManager": "pnpm@9.0.0",
+  "packageManager": "pnpm@10.12.1",
   "engines": {
     "node": ">=18"
   }
