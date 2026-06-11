@@ -1,10 +1,16 @@
 {
   "extends": "@workspace/typescript-config/nextjs.json",
   "compilerOptions": {
+    "declaration": false,
+    "declarationMap": false,
     "paths": {
       "@/*": ["./*"],
+      "@workspace/auth": ["../../packages/auth/src/index.ts"],
+      "@workspace/auth/*": ["../../packages/auth/src/*"],
       "@workspace/ui/*": ["../../packages/ui/src/*"],
-      "@workspace/typescript-config/*": ["../../packages/typescript-config/src/*"],
+      "@workspace/typescript-config/*": [
+        "../../packages/typescript-config/src/*"
+      ],
       "@workspace/eslint-config/*": ["../../packages/eslint-config/src/*"]
     },
     "plugins": [

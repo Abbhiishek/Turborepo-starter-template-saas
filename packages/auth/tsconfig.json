@@ -2,11 +2,13 @@
   "extends": "@workspace/typescript-config/base.json",
   "compilerOptions": {
     "baseUrl": ".",
+    "declaration": false,
+    "declarationMap": false,
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "paths": {
-      "@workspace/db/*": ["./src/*"],
-      "@workspace/db": ["./src/index.ts"]
+      "@workspace/auth": ["./src/index.ts"],
+      "@workspace/auth/*": ["./src/*"]
     }
   },
   "exclude": ["node_modules"],

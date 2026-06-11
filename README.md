@@ -4,15 +4,15 @@ A monorepo starter for products built on a shared, opinionated stack. Clone this
 
 ## Stack
 
-| Layer | Tool | Role |
-| --- | --- | --- |
-| Monorepo | [Turborepo](https://turbo.build) | Task orchestration, caching, and CI pipelines |
-| Language | [TypeScript](https://www.typescriptlang.org) | End-to-end type safety |
-| Validation | [Zod](https://zod.dev) | Runtime schemas and input validation |
-| ORM | [Drizzle](https://orm.drizzle.team) | Type-safe database access and migrations |
-| Auth | [Better Auth](https://www.better-auth.com) | Authentication and session management |
-| Styling | [Tailwind CSS v4](https://tailwindcss.com) | Utility-first CSS |
-| Components | [shadcn/ui](https://ui.shadcn.com) | Accessible, composable UI primitives |
+| Layer      | Tool                                         | Role                                          |
+| ---------- | -------------------------------------------- | --------------------------------------------- |
+| Monorepo   | [Turborepo](https://turbo.build)             | Task orchestration, caching, and CI pipelines |
+| Language   | [TypeScript](https://www.typescriptlang.org) | End-to-end type safety                        |
+| Validation | [Zod](https://zod.dev)                       | Runtime schemas and input validation          |
+| ORM        | [Drizzle](https://orm.drizzle.team)          | Type-safe database access and migrations      |
+| Auth       | [Better Auth](https://www.better-auth.com)   | Authentication and session management         |
+| Styling    | [Tailwind CSS v4](https://tailwindcss.com)   | Utility-first CSS                             |
+| Components | [shadcn/ui](https://ui.shadcn.com)           | Accessible, composable UI primitives          |
 
 Drizzle and Better Auth are part of the intended stack for products built from this template. Add them to your app or a shared `packages/` workspace when you wire up persistence and auth.
 
@@ -34,6 +34,8 @@ project-stack-template/
 ### Shared packages
 
 - **`@workspace/ui`** — shadcn/ui components, Tailwind globals, and utilities. Import via `@workspace/ui/components/*` and `@workspace/ui/lib/*`.
+- **`@workspace/auth`** — Better Auth server/client configuration with per-app feature flags for admin, organization/team support, OpenAPI, and extra plugins.
+- **`@workspace/db`** — Drizzle Postgres client plus generated Better Auth schema. Auth tables live in `packages/db/src/schema/auth.ts`.
 - **`@workspace/eslint-config`** — ESLint presets for Next.js and React libraries.
 - **`@workspace/typescript-config`** — Base and framework-specific `tsconfig` presets.
 
@@ -60,12 +62,12 @@ The web app runs from `apps/web`. Open the URL printed in the terminal (typicall
 
 Other root scripts:
 
-| Command | Description |
-| --- | --- |
-| `pnpm build` | Build all packages and apps |
-| `pnpm lint` | Lint all packages and apps |
+| Command            | Description                     |
+| ------------------ | ------------------------------- |
+| `pnpm build`       | Build all packages and apps     |
+| `pnpm lint`        | Lint all packages and apps      |
 | `pnpm check-types` | Type-check across the workspace |
-| `pnpm format` | Format files with Prettier |
+| `pnpm format`      | Format files with Prettier      |
 
 ### Layer 2 — Enable Turborepo remote caching
 
@@ -99,18 +101,31 @@ Then wire the new app into the monorepo:
 
 When building a real product from this template, typical next steps:
 
-**Database (Drizzle)** — add a `packages/db` workspace or colocate schema and migrations in the app:
+**Database (Drizzle)** — use the shared `packages/db` workspace for schema and migrations:
 
 ```bash
-pnpm add drizzle-orm --filter web
-pnpm add -D drizzle-kit --filter web
+pnpm --filter @workspace/db db:generate
+pnpm --filter @workspace/db db:migrate
 ```
 
-**Auth (Better Auth)** — configure in your Next.js app with API routes and shared session types:
+**Auth (Better Auth)** — use the shared `packages/auth` workspace. The default Next.js app already mounts `app/api/auth/[...all]/route.ts` from `@workspace/auth/next`.
 
-```bash
-pnpm add better-auth --filter web
+```ts
+import { createAuth } from "@workspace/auth/server";
+
+export const orgAdminAuth = createAuth({
+  features: {
+    admin: true,
+    organization: {
+      teams: {
+        enabled: true,
+      },
+    },
+  },
+});
 ```
+
+Configure `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, and optional `AUTH_FEATURES` values from `.env.example`.
 
 **Validation (Zod)** — already available via the workspace catalog. Reference shared schemas from a `packages/validators` workspace or import directly in apps.
 

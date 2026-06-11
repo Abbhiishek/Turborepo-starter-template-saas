@@ -4,9 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "check-types": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
+    "lint": "eslint",
     "remove:node_modules": "rm -rf node_modules"
   },
   "dependencies": {
@@ -21,7 +23,12 @@
     "@workspace/typescript-config": "workspace:*",
     "@workspace/eslint-config": "workspace:*",
     "drizzle-kit": "^0.31.10",
+    "eslint": "^9",
     "tsx": "^4.22.4",
     "typescript": "catalog:"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema/*": "./src/schema/*.ts"
   }
 }

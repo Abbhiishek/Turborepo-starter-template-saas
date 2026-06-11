@@ -1,5 +1,24 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
+  "globalEnv": [
+    "AUTH_ADMIN_ENABLED",
+    "AUTH_ADMIN_ROLES",
+    "AUTH_ADMIN_USER_IDS",
+    "AUTH_FEATURES",
+    "AUTH_OPENAPI_ENABLED",
+    "AUTH_ORGANIZATION_ENABLED",
+    "AUTH_ORGANIZATION_TEAMS_ENABLED",
+    "AUTH_TRUSTED_ORIGINS",
+    "BETTER_AUTH_SECRET",
+    "BETTER_AUTH_TRUSTED_ORIGINS",
+    "BETTER_AUTH_URL",
+    "DATABASE_URL",
+    "GITHUB_CLIENT_ID",
+    "GITHUB_CLIENT_SECRET",
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "NEXT_PUBLIC_APP_URL"
+  ],
   "ui": "tui",
   "tasks": {
     "build": {
