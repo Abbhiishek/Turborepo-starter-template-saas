@@ -42,12 +42,7 @@
         "AZURE_OPENAI_USE_DEPLOYMENT_BASED_URLS",
         "AZURE_OPENAI_WEATHER_ITINERARY_DEPLOYMENT_NAME"
       ],
-      "passThroughEnv": [
-        "AI_DATABASE_URL",
-        "AZURE_OPENAI_API_KEY",
-        "AZURE_OPENAI_HEADERS",
-        "DATABASE_URL"
-      ]
+      "passThroughEnv": ["AZURE_OPENAI_API_KEY", "AZURE_OPENAI_HEADERS"]
     },
     "lint": {
       "dependsOn": ["^lint"]
@@ -68,7 +63,7 @@
     "@workspace/ai#lint": {
       "dependsOn": ["^lint"],
       "env": ["AZURE_OPENAI_*"],
-      "passThroughEnv": ["AI_DATABASE_URL", "DATABASE_URL"]
+      "passThroughEnv": []
     },
     "@workspace/auth#lint": {
       "dependsOn": ["^lint"],
@@ -107,7 +102,7 @@
     "@workspace/ai#check-types": {
       "dependsOn": ["^check-types"],
       "env": ["AZURE_OPENAI_*"],
-      "passThroughEnv": ["AI_DATABASE_URL", "DATABASE_URL"]
+      "passThroughEnv": []
     },
     "@workspace/auth#check-types": {
       "dependsOn": ["^check-types"],
@@ -160,12 +155,7 @@
         "AZURE_OPENAI_USE_DEPLOYMENT_BASED_URLS",
         "AZURE_OPENAI_WEATHER_ITINERARY_DEPLOYMENT_NAME"
       ],
-      "passThroughEnv": [
-        "AI_DATABASE_URL",
-        "AZURE_OPENAI_API_KEY",
-        "AZURE_OPENAI_HEADERS",
-        "DATABASE_URL"
-      ]
+      "passThroughEnv": ["AZURE_OPENAI_API_KEY", "AZURE_OPENAI_HEADERS"]
     },
     "@workspace/auth#auth:generate": {
       "inputs": ["$TURBO_DEFAULT$", ".env*", "$TURBO_ROOT$/packages/db/.env*"],

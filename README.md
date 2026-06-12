@@ -12,7 +12,7 @@ A monorepo starter for products built on a shared, opinionated stack. Clone this
 | Validation | [Zod](https://zod.dev)                       | Runtime schemas and input validation          |
 | ORM        | [Drizzle](https://orm.drizzle.team)          | Type-safe database access and migrations      |
 | Auth       | [Better Auth](https://www.better-auth.com)   | Authentication and session management         |
-| AI         | [Mastra](https://mastra.ai)                  | Shared agents, tools, workflows, and memory   |
+| AI         | [Mastra](https://mastra.ai)                  | Shared agents, tools, workflows, and scorers  |
 | Styling    | [Tailwind CSS v4](https://tailwindcss.com)   | Utility-first CSS                             |
 | Components | [shadcn/ui](https://ui.shadcn.com)           | Accessible, composable UI primitives          |
 
@@ -36,7 +36,7 @@ project-stack-template/
 ### Shared packages
 
 - **`@workspace/ui`** — shadcn/ui components, Tailwind globals, and utilities. Import via `@workspace/ui/components/*` and `@workspace/ui/lib/*`.
-- **`@workspace/ai`** — shared Mastra package for agents, tools, workflows, storage, and memory helpers.
+- **`@workspace/ai`** — shared Mastra package for agents, tools, workflows, scorers, and eval helpers.
 - **`@workspace/auth`** — Better Auth server/client configuration with per-app feature flags for admin, organization/team support, OpenAPI, and extra plugins.
 - **`@workspace/db`** — Drizzle Postgres client plus generated Better Auth schema. Auth tables live in `packages/db/src/schema/auth.ts`.
 - **`@workspace/eslint-config`** — ESLint presets for Next.js and React libraries.
@@ -66,12 +66,12 @@ The web app runs from `apps/web`. Open the URL printed in the terminal (typicall
 Environment files are intentionally scoped to the app or package that owns the
 values. Do not create a root `.env` or root `.env.example`.
 
-| Owner           | Example file                 | Values kept there                                     |
-| --------------- | ---------------------------- | ----------------------------------------------------- |
-| `apps/web`      | `apps/web/.env.example`      | App URLs and deployment/platform-specific values      |
-| `packages/db`   | `packages/db/.env.example`   | Database credentials used by the shared DB package    |
-| `packages/ai`   | `packages/ai/.env.example`   | AI provider keys, model names, and AI storage DB URLs |
-| `packages/auth` | `packages/auth/.env.example` | Auth secrets, sessions, flags, and provider secrets   |
+| Owner           | Example file                 | Values kept there                                   |
+| --------------- | ---------------------------- | --------------------------------------------------- |
+| `apps/web`      | `apps/web/.env.example`      | App URLs and deployment/platform-specific values    |
+| `packages/db`   | `packages/db/.env.example`   | Database credentials used by the shared DB package  |
+| `packages/ai`   | `packages/ai/.env.example`   | AI provider keys and model names                    |
+| `packages/auth` | `packages/auth/.env.example` | Auth secrets, sessions, flags, and provider secrets |
 
 Each runtime app or package defines its own T3 Env schema next to its source:
 
@@ -81,7 +81,7 @@ Each runtime app or package defines its own T3 Env schema next to its source:
 | `apps/web`      | `apps/web/env/server.ts`   | Web-app server values such as auth URLs      |
 | `packages/auth` | `packages/auth/src/env.ts` | Auth secrets, flags, origins, OAuth secrets  |
 | `packages/db`   | `packages/db/src/env.ts`   | Database URLs used by the shared DB package  |
-| `packages/ai`   | `packages/ai/src/env.ts`   | AI provider keys, model names, storage URLs  |
+| `packages/ai`   | `packages/ai/src/env.ts`   | AI provider keys and model names             |
 
 Do not read `process.env` directly from application code, and do not import
 another workspace's env module. Import only the local env module for the current
@@ -89,11 +89,43 @@ app or package. If a package needs a value, define that variable in that
 package's own env schema, even if another package uses a variable with the same
 name.
 
+### Local Postgres
+
+The root `docker-compose.yml` starts a local Postgres service for normal
+application data owned by `@workspace/db`:
+
+```bash
+pnpm db:up
+```
+
+`packages/db/.env` uses:
+
+```env
+postgresql://postgres:postgres@localhost:5432/project_stack_template
+```
+
+`@workspace/ai` does not use this database. Mastra storage and memory are
+intentionally disabled so the AI package does not create Mastra tables in the
+app database.
+
+Postgres data is stored in the named Docker volume
+`project_stack_template_postgres_data`. Normal shutdown keeps the data:
+
+```bash
+pnpm db:down
+```
+
+Do not run `docker compose down -v` unless you intentionally want to delete the
+local database volume.
+
 Other root scripts:
 
 | Command            | Description                     |
 | ------------------ | ------------------------------- |
 | `pnpm build`       | Build all packages and apps     |
+| `pnpm db:up`       | Start local Postgres in Docker  |
+| `pnpm db:down`     | Stop local Postgres, keep data  |
+| `pnpm db:logs`     | Tail local Postgres logs        |
 | `pnpm lint`        | Lint all packages and apps      |
 | `pnpm check-types` | Type-check across the workspace |
 | `pnpm format`      | Format files with Prettier      |
@@ -160,16 +192,16 @@ flags in `packages/auth/.env`, and app URLs such as `BETTER_AUTH_URL` in
 
 **Validation (Zod)** — already available via the workspace catalog. Reference shared schemas from a `packages/validators` workspace or import directly in apps.
 
-**AI (Mastra)** — use the shared `packages/ai` workspace for reusable agents, tools, workflows, and memory helpers:
+**AI (Mastra)** — use the shared `packages/ai` workspace for reusable agents, tools, workflows, scorers, and eval helpers:
 
 ```bash
 pnpm --filter @workspace/ai dev
 pnpm --filter @workspace/ai build
 ```
 
-Configure AI provider keys in `packages/ai/.env`. If Mastra should use storage,
-set `DATABASE_URL` or `AI_DATABASE_URL` in `packages/ai/.env` because the AI
-package owns the storage runtime. Add agents by domain under
+Configure AI provider keys in `packages/ai/.env`. Do not set `DATABASE_URL` or
+`AI_DATABASE_URL` in `packages/ai/.env`; Mastra storage and memory are disabled
+for this template. Add agents by domain under
 `packages/ai/src/mastra/agents/*` and register the domain from
 `packages/ai/src/mastra/agents/index.ts`.
 

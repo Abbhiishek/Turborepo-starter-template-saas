@@ -1,11 +1,12 @@
 import { Mastra } from "@mastra/core";
-
-import { mastraRegistry } from "./registry";
-import { createAiStorage } from "./storage";
-
-const storage = createAiStorage();
+import { agents } from "./agents";
+import { scorers } from "./scorers";
+import { tools } from "./tools";
+import { workflows } from "./workflows";
 
 export const mastra = new Mastra({
-  ...mastraRegistry,
-  ...(storage ? { storage } : {}),
+  agents,
+  scorers,
+  tools,
+  workflows,
 });

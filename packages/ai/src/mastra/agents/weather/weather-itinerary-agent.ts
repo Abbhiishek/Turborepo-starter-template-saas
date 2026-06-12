@@ -1,11 +1,8 @@
 import { Agent } from "@mastra/core/agent";
 
-import { createConversationMemory } from "../../memory";
-import { AZURE_WEATHER_ITINERARY } from "../../models";
+import { BASEMODEL } from "../../models";
 import { weatherItineraryQualityScorer } from "../../scorers";
 import { weatherTools } from "../../tools/weather";
-
-const memory = createConversationMemory();
 
 export const weatherItineraryAgent = new Agent({
   id: "weather-itinerary-agent",
@@ -20,8 +17,7 @@ Always call getWeatherTool before suggesting plans. Use the forecast to adapt:
 
 Return a concise day plan with morning, afternoon, evening, clothing, transport, and backup notes.
 `,
-  model: AZURE_WEATHER_ITINERARY,
-  ...(memory ? { memory } : {}),
+  model: BASEMODEL,
   scorers: {
     weatherItineraryQuality: {
       scorer: weatherItineraryQualityScorer,

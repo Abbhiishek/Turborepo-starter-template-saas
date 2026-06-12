@@ -3,8 +3,8 @@
 Shared AI package for this monorepo.
 
 This package is the central place for Mastra-powered agents, tools, workflows,
-memory, storage, models, scorers, datasets, and experiments. Apps should import
-from this package instead of creating their own disconnected AI setup.
+models, scorers, datasets, and experiments. Apps should import from this package
+instead of creating their own disconnected AI setup.
 
 ## What This Package Solves
 
@@ -17,7 +17,6 @@ model names, and evaluation code.
 - Models live in one place.
 - Tools live in one place.
 - Agents can reuse those models and tools.
-- Memory can use shared Mastra storage.
 - Workflows can orchestrate multi-step jobs.
 - Scorers can judge output quality.
 - Datasets store test cases.
@@ -56,38 +55,23 @@ AZURE_OPENAI_GPT4O_DEPLOYMENT_NAME="your-gpt-4o-deployment"
 AZURE_OPENAI_WEATHER_ITINERARY_DEPLOYMENT_NAME="your-weather-itinerary-deployment"
 ```
 
-Storage is optional for local experimentation, but it is required for durable
-memory, datasets, experiment results, and score history. Database credentials
-used by `@workspace/ai` are owned by this package, so configure storage in
-`packages/ai/.env`.
+`@workspace/ai` intentionally does not define `DATABASE_URL` or
+`AI_DATABASE_URL`. Mastra storage and memory are disabled so this package does
+not create Mastra tables in the application database.
 
-```env
-DATABASE_URL="postgresql://user:password@localhost:5432/app"
-AI_DATABASE_URL="postgresql://user:password@localhost:5432/app"
-```
+## Storage And Memory Policy
 
-If `AI_DATABASE_URL` is not set, AI storage falls back to `DATABASE_URL` from
-the same `packages/ai/.env` file.
+Mastra storage and agent memory are not enabled in this template.
 
-## Should AI Storage Use The Same DB As The App?
+Use this default when:
 
-Yes, it can use the same Postgres database. That is a normal setup.
+- The app database should stay owned by `@workspace/db`.
+- You do not want Mastra to create storage, memory, trace, or eval tables.
+- Agents can answer from the current request and tools without persisted
+  conversation history.
 
-Use the same database when:
-
-- You want one DB to back the app, auth, and AI tables.
-- You are okay with Mastra creating or using its own storage tables there.
-- Your backups and environment management are simpler with one DB.
-
-Use a separate `AI_DATABASE_URL` when:
-
-- AI logs, traces, memory, datasets, and experiments may grow quickly.
-- You want to isolate AI data from core product data.
-- You want different retention or cleanup policies.
-- You want to move AI workloads later without touching app tables.
-
-No functional problem is expected if you use the same DB. The main concern is
-operational: table ownership, migrations, backups, data retention, and growth.
+Reintroduce storage later only when a feature explicitly needs durable AI
+memory, persisted experiment history, or Mastra-managed runtime state.
 
 ## Folder Structure
 
@@ -100,14 +84,6 @@ src/
 
     models/
       azure.ts
-      index.ts
-
-    storage/
-      postgres.ts
-      index.ts
-
-    memory/
-      defaults.ts
       index.ts
 
     tools/
@@ -193,41 +169,18 @@ Agents combine:
 - instructions
 - model
 - tools
-- optional memory
 - optional live scorers
 
 The weather itinerary agent uses:
 
 - `AZURE_WEATHER_ITINERARY` as its model
 - `getWeatherTool` as its weather lookup tool
-- shared conversation memory when storage is configured
 - `weatherItineraryQualityScorer` to score live outputs
 
-### Memory
+### Memory And Storage
 
-Memory lets an agent remember previous conversation context.
-
-This package exposes:
-
-```ts
-createConversationMemory()
-```
-
-That helper uses Mastra storage if a DB connection string exists. If storage is
-not configured, it returns `undefined`, and agents still work without memory.
-
-### Storage
-
-Storage is the persistence layer. In this package it is Postgres via
-`@mastra/pg`.
-
-Storage is used by:
-
-- agent memory
-- scorer results
-- eval datasets
-- experiment runs
-- Mastra runtime persistence
+Memory and storage are intentionally disabled in this package. Agents are
+stateless unless a future feature explicitly reintroduces Mastra storage.
 
 ### Workflows
 
@@ -245,7 +198,7 @@ Scorers judge an output and return a score. Scores are usually between `0` and
 This package has:
 
 ```ts
-weatherItineraryQualityScorer
+weatherItineraryQualityScorer;
 ```
 
 It checks whether an itinerary includes:
@@ -270,7 +223,7 @@ Datasets are stored test cases. Each item usually has:
 This package has a starter dataset:
 
 ```ts
-weatherItineraryDatasetItems
+weatherItineraryDatasetItems;
 ```
 
 It contains weather itinerary prompts for Mumbai, New York City, and London.
@@ -288,7 +241,7 @@ Target examples:
 This package has:
 
 ```ts
-runWeatherItineraryExperiment()
+runWeatherItineraryExperiment();
 ```
 
 It seeds the weather itinerary dataset and starts an experiment against the
@@ -310,10 +263,9 @@ Use Studio to inspect and run registered Mastra resources during development.
 `@mastra/observability` is installed so this package can add richer tracing and
 monitoring as the app grows.
 
-The baseline package already stores AI runtime data through Mastra storage when
-`AI_DATABASE_URL` or `DATABASE_URL` is configured in `packages/ai/.env`. Add
-explicit observability configuration later when you decide which backend should
-receive traces.
+The baseline package does not persist AI runtime data. Add explicit
+observability configuration later when you decide which backend should receive
+traces.
 
 ## How A Weather Request Flows
 
@@ -324,10 +276,7 @@ flowchart TD
   B --> D["getWeatherTool"]
   D --> E["Open-Meteo geocoding API"]
   D --> F["Open-Meteo forecast API"]
-  B --> G["Conversation memory"]
-  G --> H["Postgres storage"]
   B --> I["weatherItineraryQualityScorer"]
-  I --> H
 ```
 
 Step by step:
@@ -338,9 +287,8 @@ Step by step:
 4. The agent calls `getWeatherTool` to fetch weather.
 5. The tool returns structured forecast data.
 6. The agent writes a day plan.
-7. Memory can persist conversation context if storage is configured.
-8. The scorer checks the answer quality.
-9. Mastra can store score results and runtime data.
+7. The scorer checks the answer quality.
+8. No Mastra storage tables are created by this package.
 
 ## Package Exports
 
@@ -500,7 +448,7 @@ export const myTool = createTool({
 
 ## Agents Guide
 
-An agent is where the model, prompt, tools, memory, and scorers come together.
+An agent is where the model, prompt, tools, and scorers come together.
 
 The weather agent lives here:
 
@@ -511,10 +459,9 @@ src/mastra/agents/weather/weather-itinerary-agent.ts
 It uses:
 
 ```ts
-model: AZURE_WEATHER_ITINERARY
-tools: weatherTools
-memory: createConversationMemory()
-scorers: weatherItineraryQualityScorer
+model: AZURE_WEATHER_ITINERARY;
+tools: weatherTools;
+scorers: weatherItineraryQualityScorer;
 ```
 
 To add a new agent:
@@ -523,48 +470,19 @@ To add a new agent:
 2. Create `support-triage-agent.ts`.
 3. Import the model from `models`.
 4. Import tools from `tools`.
-5. Add memory only if the agent needs conversation history.
-6. Add scorers if you want live quality checks.
-7. Export the agent from the domain `index.ts`.
-8. Register the domain in `agents/index.ts`.
+5. Add scorers if you want live quality checks.
+6. Export the agent from the domain `index.ts`.
+7. Register the domain in `agents/index.ts`.
 
 Keep each agent focused. If one prompt starts doing five unrelated jobs, split
 it into multiple agents or a workflow.
 
 ## Memory Guide
 
-Memory is created here:
-
-```text
-src/mastra/memory/defaults.ts
-```
-
-The helper:
-
-```ts
-createConversationMemory()
-```
-
-does this:
-
-1. Calls `createAiStorage()`.
-2. If storage exists, returns a Mastra `Memory` instance.
-3. If storage does not exist, returns `undefined`.
-
-That design lets local dev continue even before a database is configured.
-
-Use memory for:
-
-- chat agents
-- assistant agents
-- agents that need user preferences
-- agents that need previous conversation context
-
-Avoid memory for:
-
-- one-shot classification
-- deterministic scoring
-- batch jobs where every input must be independent
+This package does not expose a memory helper. Keep agents stateless unless a
+specific product feature requires persisted conversation history. If that
+happens later, add storage explicitly and document the database ownership before
+enabling memory.
 
 ## Scoring Guide
 
@@ -633,12 +551,12 @@ src/mastra/evals/datasets/weather-itinerary-dataset.ts
 It exports:
 
 ```ts
-weatherItineraryDatasetName
-weatherItineraryDatasetInputSchema
-weatherItineraryDatasetGroundTruthSchema
-weatherItineraryDatasetItems
-getOrCreateWeatherItineraryDataset()
-seedWeatherItineraryDataset()
+weatherItineraryDatasetName;
+weatherItineraryDatasetInputSchema;
+weatherItineraryDatasetGroundTruthSchema;
+weatherItineraryDatasetItems;
+getOrCreateWeatherItineraryDataset();
+seedWeatherItineraryDataset();
 ```
 
 The starter dataset contains prompts like:
@@ -662,8 +580,9 @@ Use datasets when:
 - you want to test prompt changes
 - you want to prove one agent version is better than another
 
-Datasets require Mastra storage. Without storage, there is nowhere to persist
-the dataset items and experiment results.
+Without Mastra storage, dataset examples remain source-controlled fixtures.
+Persisted dataset items and experiment history can be reintroduced later with
+explicit storage.
 
 ## Experiments Guide
 
@@ -678,8 +597,8 @@ src/mastra/evals/experiments/weather-itinerary-experiment.ts
 It exports:
 
 ```ts
-weatherItineraryExperimentConfig
-runWeatherItineraryExperiment()
+weatherItineraryExperimentConfig;
+runWeatherItineraryExperiment();
 ```
 
 The current experiment:
@@ -795,10 +714,10 @@ src/mastra/registry.ts
 It combines:
 
 ```ts
-agents
-scorers
-tools
-workflows
+agents;
+scorers;
+tools;
+workflows;
 ```
 
 The Mastra instance is:
@@ -809,9 +728,8 @@ src/mastra/index.ts
 
 That file:
 
-1. Creates storage if a DB URL exists.
-2. Creates one shared Mastra instance.
-3. Registers agents, tools, workflows, and scorers.
+1. Creates one shared Mastra instance.
+2. Registers agents, tools, workflows, and scorers.
 
 Apps should usually import:
 
@@ -841,11 +759,11 @@ PROVIDER_FEATURE_OR_MODEL
 Examples:
 
 ```ts
-AZURE_GPT4O
-AZURE_GPT5
-AZURE_TEXT_EMBEDDING
-AZURE_RESUME_REVIEW
-AZURE_CODE_REVIEWER
+AZURE_GPT4O;
+AZURE_GPT5;
+AZURE_TEXT_EMBEDDING;
+AZURE_RESUME_REVIEW;
+AZURE_CODE_REVIEWER;
 ```
 
 ## Working With 50 To 60 Agents
@@ -911,21 +829,17 @@ AZURE_OPENAI_GPT4O_DEPLOYMENT_NAME
 AZURE_OPENAI_WEATHER_ITINERARY_DEPLOYMENT_NAME
 ```
 
-### Memory is not working
+### Memory or storage is missing
 
-Check that one of these exists in `packages/ai/.env`:
-
-```env
-AI_DATABASE_URL
-DATABASE_URL
-```
-
-If neither exists, `createConversationMemory()` returns `undefined`.
+That is expected. Mastra memory and storage are intentionally disabled in this
+package, so `packages/ai/.env` should not contain `DATABASE_URL` or
+`AI_DATABASE_URL`.
 
 ### Datasets or experiments do not persist
 
-Datasets and experiments require storage. Add `AI_DATABASE_URL` or
-`DATABASE_URL` to `packages/ai/.env`.
+That is expected without Mastra storage. Keep eval cases in source-controlled
+files, or reintroduce explicit storage later if persisted experiment history is
+required.
 
 ### The weather tool cannot find a city
 
