@@ -11,6 +11,7 @@ A monorepo starter for products built on a shared, opinionated stack. Clone this
 | Validation | [Zod](https://zod.dev)                       | Runtime schemas and input validation          |
 | ORM        | [Drizzle](https://orm.drizzle.team)          | Type-safe database access and migrations      |
 | Auth       | [Better Auth](https://www.better-auth.com)   | Authentication and session management         |
+| AI         | [Mastra](https://mastra.ai)                  | Shared agents, tools, workflows, and memory   |
 | Styling    | [Tailwind CSS v4](https://tailwindcss.com)   | Utility-first CSS                             |
 | Components | [shadcn/ui](https://ui.shadcn.com)           | Accessible, composable UI primitives          |
 
@@ -34,6 +35,7 @@ project-stack-template/
 ### Shared packages
 
 - **`@workspace/ui`** — shadcn/ui components, Tailwind globals, and utilities. Import via `@workspace/ui/components/*` and `@workspace/ui/lib/*`.
+- **`@workspace/ai`** — shared Mastra package for agents, tools, workflows, storage, and memory helpers.
 - **`@workspace/auth`** — Better Auth server/client configuration with per-app feature flags for admin, organization/team support, OpenAPI, and extra plugins.
 - **`@workspace/db`** — Drizzle Postgres client plus generated Better Auth schema. Auth tables live in `packages/db/src/schema/auth.ts`.
 - **`@workspace/eslint-config`** — ESLint presets for Next.js and React libraries.
@@ -128,6 +130,26 @@ export const orgAdminAuth = createAuth({
 Configure `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, and optional `AUTH_FEATURES` values from `.env.example`.
 
 **Validation (Zod)** — already available via the workspace catalog. Reference shared schemas from a `packages/validators` workspace or import directly in apps.
+
+**AI (Mastra)** — use the shared `packages/ai` workspace for reusable agents, tools, workflows, and memory helpers:
+
+```bash
+pnpm --filter @workspace/ai dev
+pnpm --filter @workspace/ai build
+```
+
+Configure `AI_DATABASE_URL` when Mastra should use a different storage database than `DATABASE_URL`. Add agents by domain under `packages/ai/src/mastra/agents/*` and register the domain from `packages/ai/src/mastra/agents/index.ts`.
+
+The models folder exports provider-prefixed AI SDK models directly. For Azure OpenAI or Azure AI Foundry deployments:
+
+```env
+AZURE_OPENAI_RESOURCE_NAME="your-resource-name"
+AZURE_OPENAI_API_KEY="your-api-key"
+AZURE_OPENAI_GPT4O_DEPLOYMENT_NAME="your-gpt-4o-deployment"
+AZURE_OPENAI_GPT5_DEPLOYMENT_NAME="your-gpt-5-deployment"
+AZURE_OPENAI_WEATHER_ITINERARY_DEPLOYMENT_NAME="your-weather-itinerary-deployment"
+AZURE_OPENAI_TEXT_EMBEDDING_DEPLOYMENT_NAME="text-embedding-3-small"
+```
 
 **UI (shadcn/ui)** — add components to the shared UI package:
 

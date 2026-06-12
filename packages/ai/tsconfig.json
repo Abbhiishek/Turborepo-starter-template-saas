@@ -1,0 +1,17 @@
+{
+  "extends": "@workspace/typescript-config/base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "declaration": false,
+    "declarationMap": false,
+    "module": "ES2022",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "paths": {
+      "@workspace/ai": ["./src/index.ts"],
+      "@workspace/ai/*": ["./src/*"]
+    }
+  },
+  "exclude": ["node_modules", ".mastra"],
+  "include": ["src"]
+}

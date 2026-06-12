@@ -1,7 +1,19 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
   "globalEnv": [
+    "AI_DATABASE_URL",
     "AUTH_ADMIN_ENABLED",
+    "AZURE_OPENAI_API_KEY",
+    "AZURE_OPENAI_API_VERSION",
+    "AZURE_OPENAI_BASE_URL",
+    "AZURE_OPENAI_GPT4O_DEPLOYMENT_NAME",
+    "AZURE_OPENAI_GPT5_DEPLOYMENT_NAME",
+    "AZURE_OPENAI_HEADERS",
+    "AZURE_OPENAI_OPUS_4_5_DEPLOYMENT_NAME",
+    "AZURE_OPENAI_RESOURCE_NAME",
+    "AZURE_OPENAI_TEXT_EMBEDDING_DEPLOYMENT_NAME",
+    "AZURE_OPENAI_USE_DEPLOYMENT_BASED_URLS",
+    "AZURE_OPENAI_WEATHER_ITINERARY_DEPLOYMENT_NAME",
     "AUTH_ADMIN_ROLES",
     "AUTH_ADMIN_USER_IDS",
     "AUTH_FEATURES",
@@ -24,7 +36,7 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**", "!.next/dev/**"]
+      "outputs": [".next/**", "!.next/cache/**", "!.next/dev/**", ".mastra/**"]
     },
     "lint": {
       "dependsOn": ["^lint"]
