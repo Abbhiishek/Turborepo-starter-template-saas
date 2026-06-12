@@ -14,13 +14,15 @@
   },
   "dependencies": {
     "@remixicon/react": "^4.9.0",
+    "@t3-oss/env-nextjs": "catalog:",
     "@workspace/auth": "workspace:*",
     "@workspace/ui": "workspace:*",
     "better-auth": "^1.6.16",
     "next": "16.2.6",
     "next-themes": "^0.4.6",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

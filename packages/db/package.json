@@ -12,6 +12,7 @@
     "remove:node_modules": "rm -rf node_modules"
   },
   "dependencies": {
+    "@t3-oss/env-core": "catalog:",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "pg": "^8.21.0",

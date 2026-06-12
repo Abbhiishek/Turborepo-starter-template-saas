@@ -83,7 +83,6 @@ Server-side Better Auth factory and default instance.
 | `createAuthOptions(options?)`  | Creates the Better Auth options object without constructing the instance. |
 | `createAuthPlugins(features?)` | Converts feature flags into Better Auth plugins.                          |
 | `getAuthFeaturesFromEnv(env?)` | Reads feature flags from env.                                             |
-| `auth`                         | Default auth instance using runtime env feature flags.                    |
 | `AuthFeatureFlags`             | Feature flag type.                                                        |
 | `CreateAuthOptions`            | Factory options type.                                                     |
 
@@ -118,11 +117,10 @@ Organization access-control helpers.
 
 ### `@workspace/auth/next`
 
-Exports `GET` and `POST` handlers for the default `auth` instance.
+Exports `createNextAuthHandlers(auth)` for app-local Next.js route handlers.
 
-Use this only when an app intentionally wants the package-level default auth
-instance. Most production apps should create their own route handler from their
-local `auth`.
+Use this when an app wants to avoid importing `better-auth/next-js` directly.
+The app still owns its local `auth` instance.
 
 ### `@workspace/auth/schema`
 
@@ -145,8 +143,8 @@ apps/
     lib/auth-types.ts
 ```
 
-Keep package-level defaults in `packages/auth`. Keep app decisions inside the
-app.
+Keep shared defaults and factories in `packages/auth`. Keep app decisions
+inside the app.
 
 ## Quick Start: Plain App
 
@@ -164,11 +162,11 @@ export const auth = createAuth({
 
 ```ts
 // apps/plain/app/api/auth/[...all]/route.ts
-import { toNextJsHandler } from "better-auth/next-js";
+import { createNextAuthHandlers } from "@workspace/auth/next";
 
 import { auth } from "@/lib/auth";
 
-export const { GET, POST } = toNextJsHandler(auth);
+export const { GET, POST } = createNextAuthHandlers(auth);
 ```
 
 ```ts
@@ -260,11 +258,11 @@ export const authClient = createWorkspaceAuthClient({
 
 ```ts
 // apps/b2b/app/api/auth/[...all]/route.ts
-import { toNextJsHandler } from "better-auth/next-js";
+import { createNextAuthHandlers } from "@workspace/auth/next";
 
 import { auth } from "@/lib/auth";
 
-export const { GET, POST } = toNextJsHandler(auth);
+export const { GET, POST } = createNextAuthHandlers(auth);
 ```
 
 ## Access Control

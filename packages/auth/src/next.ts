@@ -1,5 +1,9 @@
 import { toNextJsHandler } from "better-auth/next-js";
 
-import { auth } from "./server";
+import type { createAuth } from "./server";
 
-export const { GET, POST } = toNextJsHandler(auth);
+type AuthInstance = ReturnType<typeof createAuth>;
+
+export function createNextAuthHandlers(auth: AuthInstance) {
+  return toNextJsHandler(auth);
+}

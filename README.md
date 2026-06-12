@@ -8,6 +8,7 @@ A monorepo starter for products built on a shared, opinionated stack. Clone this
 | ---------- | -------------------------------------------- | --------------------------------------------- |
 | Monorepo   | [Turborepo](https://turbo.build)             | Task orchestration, caching, and CI pipelines |
 | Language   | [TypeScript](https://www.typescriptlang.org) | End-to-end type safety                        |
+| Env        | [T3 Env](https://env.t3.gg)                  | Type-safe app/package environment contracts   |
 | Validation | [Zod](https://zod.dev)                       | Runtime schemas and input validation          |
 | ORM        | [Drizzle](https://orm.drizzle.team)          | Type-safe database access and migrations      |
 | Auth       | [Better Auth](https://www.better-auth.com)   | Authentication and session management         |
@@ -65,12 +66,28 @@ The web app runs from `apps/web`. Open the URL printed in the terminal (typicall
 Environment files are intentionally scoped to the app or package that owns the
 values. Do not create a root `.env` or root `.env.example`.
 
-| Owner           | Example file                 | Values kept there                                      |
-| --------------- | ---------------------------- | ------------------------------------------------------ |
-| `apps/web`      | `apps/web/.env.example`      | App URLs and deployment/platform-specific values       |
-| `packages/db`   | `packages/db/.env.example`   | All database credentials, including AI storage DB URLs |
-| `packages/ai`   | `packages/ai/.env.example`   | AI provider keys and model deployment names            |
-| `packages/auth` | `packages/auth/.env.example` | Auth secrets, sessions, flags, and provider secrets    |
+| Owner           | Example file                 | Values kept there                                     |
+| --------------- | ---------------------------- | ----------------------------------------------------- |
+| `apps/web`      | `apps/web/.env.example`      | App URLs and deployment/platform-specific values      |
+| `packages/db`   | `packages/db/.env.example`   | Database credentials used by the shared DB package    |
+| `packages/ai`   | `packages/ai/.env.example`   | AI provider keys, model names, and AI storage DB URLs |
+| `packages/auth` | `packages/auth/.env.example` | Auth secrets, sessions, flags, and provider secrets   |
+
+Each runtime app or package defines its own T3 Env schema next to its source:
+
+| Owner           | Env module                 | Scope                                        |
+| --------------- | -------------------------- | -------------------------------------------- |
+| `apps/web`      | `apps/web/env/client.ts`   | Public `NEXT_PUBLIC_*` values for the client |
+| `apps/web`      | `apps/web/env/server.ts`   | Web-app server values such as auth URLs      |
+| `packages/auth` | `packages/auth/src/env.ts` | Auth secrets, flags, origins, OAuth secrets  |
+| `packages/db`   | `packages/db/src/env.ts`   | Database URLs used by the shared DB package  |
+| `packages/ai`   | `packages/ai/src/env.ts`   | AI provider keys, model names, storage URLs  |
+
+Do not read `process.env` directly from application code, and do not import
+another workspace's env module. Import only the local env module for the current
+app or package. If a package needs a value, define that variable in that
+package's own env schema, even if another package uses a variable with the same
+name.
 
 Other root scripts:
 
@@ -120,7 +137,7 @@ pnpm --filter @workspace/db db:generate
 pnpm --filter @workspace/db db:migrate
 ```
 
-**Auth (Better Auth)** — use the shared `packages/auth` workspace. The default Next.js app already mounts `app/api/auth/[...all]/route.ts` from `@workspace/auth/next`.
+**Auth (Better Auth)** — use the shared `packages/auth` workspace. The default Next.js app owns an app-local `lib/auth.ts` and mounts it from `app/api/auth/[...all]/route.ts`.
 
 ```ts
 import { createAuth } from "@workspace/auth/server";
@@ -150,10 +167,10 @@ pnpm --filter @workspace/ai dev
 pnpm --filter @workspace/ai build
 ```
 
-Configure AI provider keys in `packages/ai/.env`. If Mastra should use a
-different storage database than `DATABASE_URL`, set `AI_DATABASE_URL` in
-`packages/db/.env` because it is still a database credential. Add agents by
-domain under `packages/ai/src/mastra/agents/*` and register the domain from
+Configure AI provider keys in `packages/ai/.env`. If Mastra should use storage,
+set `DATABASE_URL` or `AI_DATABASE_URL` in `packages/ai/.env` because the AI
+package owns the storage runtime. Add agents by domain under
+`packages/ai/src/mastra/agents/*` and register the domain from
 `packages/ai/src/mastra/agents/index.ts`.
 
 The models folder exports provider-prefixed AI SDK models directly. For Azure OpenAI or Azure AI Foundry deployments:
@@ -182,6 +199,8 @@ Shared dependency versions are centralized in `pnpm-workspace.yaml` under `catal
 ```yaml
 # pnpm-workspace.yaml
 catalog:
+  "@t3-oss/env-core": 0.13.11
+  "@t3-oss/env-nextjs": 0.13.11
   typescript: 5.9.2
   zod: ^4.4.3
 ```

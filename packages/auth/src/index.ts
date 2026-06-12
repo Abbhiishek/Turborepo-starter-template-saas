@@ -1,5 +1,4 @@
 export {
-  auth,
   createAuth,
   createAuthOptions,
   createAuthPlugins,

@@ -1,12 +1,13 @@
-import "dotenv/config";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
+
+import { env } from "./env";
 
 // Export all drizzle helpers and generated table schemas.
 export * from "drizzle-orm";
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL!,
+  ...(env.DATABASE_URL ? { connectionString: env.DATABASE_URL } : {}),
   ssl: true,
   max: 20,
   min: 2,

@@ -12,9 +12,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@t3-oss/env-core": "catalog:",
     "@workspace/db": "workspace:*",
     "better-auth": "^1.6.16",
-    "drizzle-orm": "0.45.2"
+    "dotenv": "^17.4.2",
+    "drizzle-orm": "0.45.2",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@better-auth/cli": "^1.4.21",

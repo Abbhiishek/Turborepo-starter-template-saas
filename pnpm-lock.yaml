@@ -5,6 +5,8 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
+  '@t3-oss/env-core': 0.13.11
+  '@t3-oss/env-nextjs': 0.13.11
   typescript: 5.9.2
   zod: ^4.4.3
 
@@ -27,6 +29,9 @@ importers:
       '@remixicon/react':
         specifier: ^4.9.0
         version: 4.9.0(react@19.2.4)
+      '@t3-oss/env-nextjs':
+        specifier: 0.13.11
+        version: 0.13.11(typescript@5.9.2)(zod@4.4.3)
       '@workspace/auth':
         specifier: workspace:*
         version: link:../../packages/auth
@@ -48,6 +53,9 @@ importers:
       react-dom:
         specifier: 19.2.4
         version: 19.2.4(react@19.2.4)
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@tailwindcss/postcss':
         specifier: ^4
@@ -97,6 +105,9 @@ importers:
       '@mastra/pg':
         specifier: ^1.13.0
         version: 1.13.0(@mastra/core@1.42.0(ai@6.0.202(zod@4.4.3))(express@5.2.1)(zod@4.4.3))
+      '@t3-oss/env-core':
+        specifier: 0.13.11
+        version: 0.13.11(typescript@5.9.2)(zod@4.4.3)
       dotenv:
         specifier: ^17.4.2
         version: 17.4.2
@@ -125,15 +136,24 @@ importers:
 
   packages/auth:
     dependencies:
+      '@t3-oss/env-core':
+        specifier: 0.13.11
+        version: 0.13.11(typescript@5.9.2)(zod@4.4.3)
       '@workspace/db':
         specifier: workspace:*
         version: link:../db
       better-auth:
         specifier: ^1.6.16
         version: 1.6.16(@opentelemetry/api@1.9.1)(@prisma/client@5.22.0)(better-sqlite3@12.10.0)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@prisma/client@5.22.0)(@types/pg@8.20.0)(better-sqlite3@12.10.0)(kysely@0.28.17)(pg@8.21.0))(next@16.2.6(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(pg@8.21.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@opentelemetry/api@1.9.1)(@prisma/client@5.22.0)(@types/pg@8.20.0)(better-sqlite3@12.10.0)(kysely@0.28.17)(pg@8.21.0)
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@better-auth/cli':
         specifier: ^1.4.21
@@ -156,6 +176,9 @@ importers:
 
   packages/db:
     dependencies:
+      '@t3-oss/env-core':
+        specifier: 0.13.11
+        version: 0.13.11(typescript@5.9.2)(zod@4.4.3)
       dotenv:
         specifier: ^17.4.2
         version: 17.4.2
@@ -2807,6 +2830,40 @@ packages:
 
   '@swc/helpers@0.5.15':
     resolution: {integrity: sha512-JQ5TuMi45Owi4/BIMAJBoSQoOJu12oOk/gADqlcUL9JEdHB8vyjUSsxqeNXnmXHjYKMi2WcYtezGEEhqUI/E2g==}
+
+  '@t3-oss/env-core@0.13.11':
+    resolution: {integrity: sha512-sM7GYY+KL7H/Hl0BE0inWfk3nRHZOLhmVn7sHGxaZt9FAR6KqREXAE+6TqKfiavfXmpRxO/OZ2QgKRd+oiBYRQ==}
+    peerDependencies:
+      arktype: ^2.1.0
+      typescript: 5.9.2
+      valibot: ^1.0.0-beta.7 || ^1.0.0
+      zod: ^4.4.3
+    peerDependenciesMeta:
+      arktype:
+        optional: true
+      typescript:
+        optional: true
+      valibot:
+        optional: true
+      zod:
+        optional: true
+
+  '@t3-oss/env-nextjs@0.13.11':
+    resolution: {integrity: sha512-NC+3j7YWgpzdFu1t5y/8wqibTK0lm5RS4bjXA1n8uwik3wIR4iZM4Fa+U2BaMa5k3Qk8RZiYhoAIX0WogmGkzg==}
+    peerDependencies:
+      arktype: ^2.1.0
+      typescript: 5.9.2
+      valibot: ^1.0.0-beta.7 || ^1.0.0
+      zod: ^4.4.3
+    peerDependenciesMeta:
+      arktype:
+        optional: true
+      typescript:
+        optional: true
+      valibot:
+        optional: true
+      zod:
+        optional: true
 
   '@tailwindcss/node@4.3.0':
     resolution: {integrity: sha512-aFb4gUhFOgdh9AXo4IzBEOzBkkAxm9VigwDJnMIYv3lcfXCJVesNfbEaBl4BNgVRyid92AmdviqwBUBRKSeY3g==}
@@ -8871,6 +8928,18 @@ snapshots:
   '@swc/helpers@0.5.15':
     dependencies:
       tslib: 2.8.1
+
+  '@t3-oss/env-core@0.13.11(typescript@5.9.2)(zod@4.4.3)':
+    optionalDependencies:
+      typescript: 5.9.2
+      zod: 4.4.3
+
+  '@t3-oss/env-nextjs@0.13.11(typescript@5.9.2)(zod@4.4.3)':
+    dependencies:
+      '@t3-oss/env-core': 0.13.11(typescript@5.9.2)(zod@4.4.3)
+    optionalDependencies:
+      typescript: 5.9.2
+      zod: 4.4.3
 
   '@tailwindcss/node@4.3.0':
     dependencies:

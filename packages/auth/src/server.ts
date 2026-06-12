@@ -7,6 +7,7 @@ import { db } from "@workspace/db";
 import { ac, roles } from "./access-control";
 import {
   flagEnabled,
+  getBetterAuthSecret,
   getRuntimeEnv,
   parseCsv,
   type AuthRuntimeEnv,
@@ -60,8 +61,7 @@ export function getAuthFeaturesFromEnv(
 ): AuthFeatureFlags {
   const adminRoles = parseCsv(env.AUTH_ADMIN_ROLES);
   const adminUserIds = parseCsv(env.AUTH_ADMIN_USER_IDS);
-  const organizationTeamsEnabled =
-    env.AUTH_ORGANIZATION_TEAMS_ENABLED === "true";
+  const organizationTeamsEnabled = env.AUTH_ORGANIZATION_TEAMS_ENABLED;
 
   return {
     admin: flagEnabled(env, "admin", "AUTH_ADMIN_ENABLED")
@@ -133,8 +133,8 @@ export function createAuthOptions(
     database: drizzleAdapter(db, {
       provider: "pg",
     }),
-    secret: secret ?? env.BETTER_AUTH_SECRET,
-    baseURL: baseURL ?? env.BETTER_AUTH_URL,
+    secret: secret ?? getBetterAuthSecret(env),
+    ...(baseURL ? { baseURL } : {}),
     ...(trustedOrigins.length > 0 ? { trustedOrigins } : {}),
     emailAndPassword: {
       enabled: true,
@@ -180,5 +180,3 @@ export function createAuthOptions(
 export function createAuth(options: CreateAuthOptions = {}) {
   return betterAuth(createAuthOptions(options));
 }
-
-export const auth = createAuth();

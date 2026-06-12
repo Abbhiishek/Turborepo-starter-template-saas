@@ -29,7 +29,7 @@
     },
     "@workspace/ai#build": {
       "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*", "$TURBO_ROOT$/packages/db/.env*"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".mastra/**"],
       "env": [
         "AZURE_OPENAI_API_VERSION",
@@ -86,7 +86,7 @@
     "@workspace/db#lint": {
       "dependsOn": ["^lint"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "passThroughEnv": ["AI_DATABASE_URL", "DATABASE_URL"]
+      "passThroughEnv": ["DATABASE_URL"]
     },
     "check-types": {
       "dependsOn": ["^check-types"]
@@ -125,7 +125,7 @@
     "@workspace/db#check-types": {
       "dependsOn": ["^check-types"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "passThroughEnv": ["AI_DATABASE_URL", "DATABASE_URL"]
+      "passThroughEnv": ["DATABASE_URL"]
     },
     "dev": {
       "cache": false,
@@ -148,7 +148,7 @@
     "@workspace/ai#dev": {
       "cache": false,
       "persistent": true,
-      "inputs": ["$TURBO_DEFAULT$", ".env*", "$TURBO_ROOT$/packages/db/.env*"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "env": [
         "AZURE_OPENAI_API_VERSION",
         "AZURE_OPENAI_BASE_URL",
