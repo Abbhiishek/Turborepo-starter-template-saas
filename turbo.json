@@ -1,52 +1,210 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
-  "globalEnv": [
-    "AI_DATABASE_URL",
-    "AUTH_ADMIN_ENABLED",
-    "AZURE_OPENAI_API_KEY",
-    "AZURE_OPENAI_API_VERSION",
-    "AZURE_OPENAI_BASE_URL",
-    "AZURE_OPENAI_GPT4O_DEPLOYMENT_NAME",
-    "AZURE_OPENAI_GPT5_DEPLOYMENT_NAME",
-    "AZURE_OPENAI_HEADERS",
-    "AZURE_OPENAI_OPUS_4_5_DEPLOYMENT_NAME",
-    "AZURE_OPENAI_RESOURCE_NAME",
-    "AZURE_OPENAI_TEXT_EMBEDDING_DEPLOYMENT_NAME",
-    "AZURE_OPENAI_USE_DEPLOYMENT_BASED_URLS",
-    "AZURE_OPENAI_WEATHER_ITINERARY_DEPLOYMENT_NAME",
-    "AUTH_ADMIN_ROLES",
-    "AUTH_ADMIN_USER_IDS",
-    "AUTH_FEATURES",
-    "AUTH_OPENAPI_ENABLED",
-    "AUTH_ORGANIZATION_ENABLED",
-    "AUTH_ORGANIZATION_TEAMS_ENABLED",
-    "AUTH_TRUSTED_ORIGINS",
-    "BETTER_AUTH_SECRET",
-    "BETTER_AUTH_TRUSTED_ORIGINS",
-    "BETTER_AUTH_URL",
-    "DATABASE_URL",
-    "GITHUB_CLIENT_ID",
-    "GITHUB_CLIENT_SECRET",
-    "GOOGLE_CLIENT_ID",
-    "GOOGLE_CLIENT_SECRET",
-    "NEXT_PUBLIC_APP_URL"
-  ],
   "ui": "tui",
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "inputs": ["$TURBO_DEFAULT$"],
       "outputs": [".next/**", "!.next/cache/**", "!.next/dev/**", ".mastra/**"]
+    },
+    "web#build": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        ".env*",
+        "$TURBO_ROOT$/packages/auth/.env*",
+        "$TURBO_ROOT$/packages/db/.env*"
+      ],
+      "outputs": [".next/**", "!.next/cache/**", "!.next/dev/**"],
+      "env": ["BETTER_AUTH_URL", "NEXT_PUBLIC_APP_URL"],
+      "passThroughEnv": [
+        "AUTH_*",
+        "BETTER_AUTH_SECRET",
+        "DATABASE_URL",
+        "GITHUB_CLIENT_ID",
+        "GITHUB_CLIENT_SECRET",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET"
+      ]
+    },
+    "@workspace/ai#build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*", "$TURBO_ROOT$/packages/db/.env*"],
+      "outputs": [".mastra/**"],
+      "env": [
+        "AZURE_OPENAI_API_VERSION",
+        "AZURE_OPENAI_BASE_URL",
+        "AZURE_OPENAI_GPT4O_DEPLOYMENT_NAME",
+        "AZURE_OPENAI_GPT5_DEPLOYMENT_NAME",
+        "AZURE_OPENAI_OPUS_4_5_DEPLOYMENT_NAME",
+        "AZURE_OPENAI_RESOURCE_NAME",
+        "AZURE_OPENAI_TEXT_EMBEDDING_DEPLOYMENT_NAME",
+        "AZURE_OPENAI_USE_DEPLOYMENT_BASED_URLS",
+        "AZURE_OPENAI_WEATHER_ITINERARY_DEPLOYMENT_NAME"
+      ],
+      "passThroughEnv": [
+        "AI_DATABASE_URL",
+        "AZURE_OPENAI_API_KEY",
+        "AZURE_OPENAI_HEADERS",
+        "DATABASE_URL"
+      ]
     },
     "lint": {
       "dependsOn": ["^lint"]
     },
+    "web#lint": {
+      "dependsOn": ["^lint"],
+      "env": ["BETTER_AUTH_URL", "NEXT_PUBLIC_APP_URL"],
+      "passThroughEnv": [
+        "AUTH_*",
+        "BETTER_AUTH_SECRET",
+        "DATABASE_URL",
+        "GITHUB_CLIENT_ID",
+        "GITHUB_CLIENT_SECRET",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET"
+      ]
+    },
+    "@workspace/ai#lint": {
+      "dependsOn": ["^lint"],
+      "env": ["AZURE_OPENAI_*"],
+      "passThroughEnv": ["AI_DATABASE_URL", "DATABASE_URL"]
+    },
+    "@workspace/auth#lint": {
+      "dependsOn": ["^lint"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*", "$TURBO_ROOT$/packages/db/.env*"],
+      "passThroughEnv": [
+        "AUTH_*",
+        "BETTER_AUTH_SECRET",
+        "DATABASE_URL",
+        "GITHUB_CLIENT_ID",
+        "GITHUB_CLIENT_SECRET",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET"
+      ]
+    },
+    "@workspace/db#lint": {
+      "dependsOn": ["^lint"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "passThroughEnv": ["AI_DATABASE_URL", "DATABASE_URL"]
+    },
     "check-types": {
       "dependsOn": ["^check-types"]
+    },
+    "web#check-types": {
+      "dependsOn": ["^check-types"],
+      "env": ["BETTER_AUTH_URL", "NEXT_PUBLIC_APP_URL"],
+      "passThroughEnv": [
+        "AUTH_*",
+        "BETTER_AUTH_SECRET",
+        "DATABASE_URL",
+        "GITHUB_CLIENT_ID",
+        "GITHUB_CLIENT_SECRET",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET"
+      ]
+    },
+    "@workspace/ai#check-types": {
+      "dependsOn": ["^check-types"],
+      "env": ["AZURE_OPENAI_*"],
+      "passThroughEnv": ["AI_DATABASE_URL", "DATABASE_URL"]
+    },
+    "@workspace/auth#check-types": {
+      "dependsOn": ["^check-types"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*", "$TURBO_ROOT$/packages/db/.env*"],
+      "passThroughEnv": [
+        "AUTH_*",
+        "BETTER_AUTH_SECRET",
+        "DATABASE_URL",
+        "GITHUB_CLIENT_ID",
+        "GITHUB_CLIENT_SECRET",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET"
+      ]
+    },
+    "@workspace/db#check-types": {
+      "dependsOn": ["^check-types"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "passThroughEnv": ["AI_DATABASE_URL", "DATABASE_URL"]
     },
     "dev": {
       "cache": false,
       "persistent": true
+    },
+    "web#dev": {
+      "cache": false,
+      "persistent": true,
+      "env": ["BETTER_AUTH_URL", "NEXT_PUBLIC_APP_URL"],
+      "passThroughEnv": [
+        "AUTH_*",
+        "BETTER_AUTH_SECRET",
+        "DATABASE_URL",
+        "GITHUB_CLIENT_ID",
+        "GITHUB_CLIENT_SECRET",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET"
+      ]
+    },
+    "@workspace/ai#dev": {
+      "cache": false,
+      "persistent": true,
+      "inputs": ["$TURBO_DEFAULT$", ".env*", "$TURBO_ROOT$/packages/db/.env*"],
+      "env": [
+        "AZURE_OPENAI_API_VERSION",
+        "AZURE_OPENAI_BASE_URL",
+        "AZURE_OPENAI_GPT4O_DEPLOYMENT_NAME",
+        "AZURE_OPENAI_GPT5_DEPLOYMENT_NAME",
+        "AZURE_OPENAI_OPUS_4_5_DEPLOYMENT_NAME",
+        "AZURE_OPENAI_RESOURCE_NAME",
+        "AZURE_OPENAI_TEXT_EMBEDDING_DEPLOYMENT_NAME",
+        "AZURE_OPENAI_USE_DEPLOYMENT_BASED_URLS",
+        "AZURE_OPENAI_WEATHER_ITINERARY_DEPLOYMENT_NAME"
+      ],
+      "passThroughEnv": [
+        "AI_DATABASE_URL",
+        "AZURE_OPENAI_API_KEY",
+        "AZURE_OPENAI_HEADERS",
+        "DATABASE_URL"
+      ]
+    },
+    "@workspace/auth#auth:generate": {
+      "inputs": ["$TURBO_DEFAULT$", ".env*", "$TURBO_ROOT$/packages/db/.env*"],
+      "passThroughEnv": [
+        "AUTH_*",
+        "BETTER_AUTH_SECRET",
+        "DATABASE_URL",
+        "GITHUB_CLIENT_ID",
+        "GITHUB_CLIENT_SECRET",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET"
+      ]
+    },
+    "@workspace/auth#auth:info": {
+      "inputs": ["$TURBO_DEFAULT$", ".env*", "$TURBO_ROOT$/packages/db/.env*"],
+      "passThroughEnv": [
+        "AUTH_*",
+        "BETTER_AUTH_SECRET",
+        "DATABASE_URL",
+        "GITHUB_CLIENT_ID",
+        "GITHUB_CLIENT_SECRET",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET"
+      ]
+    },
+    "@workspace/db#db:generate": {
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "passThroughEnv": ["DATABASE_URL"]
+    },
+    "@workspace/db#db:migrate": {
+      "cache": false,
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "passThroughEnv": ["DATABASE_URL"]
+    },
+    "@workspace/db#db:studio": {
+      "cache": false,
+      "persistent": true,
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "passThroughEnv": ["DATABASE_URL"]
     }
   }
 }

@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { createAzure } from "@ai-sdk/azure";
 
 export const azure = createAzure({

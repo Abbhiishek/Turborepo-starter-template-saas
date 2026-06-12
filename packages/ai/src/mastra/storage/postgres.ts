@@ -1,6 +1,7 @@
 import { PostgresStore } from "@mastra/pg";
 
 export type AiStorageEnv = {
+  [key: string]: string | undefined;
   AI_DATABASE_URL?: string;
   DATABASE_URL?: string;
 };

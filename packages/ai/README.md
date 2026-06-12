@@ -57,13 +57,15 @@ AZURE_OPENAI_WEATHER_ITINERARY_DEPLOYMENT_NAME="your-weather-itinerary-deploymen
 ```
 
 Storage is optional for local experimentation, but it is required for durable
-memory, datasets, experiment results, and score history.
+memory, datasets, experiment results, and score history. Database credentials
+are owned by `@workspace/db`, so configure storage in `packages/db/.env`.
 
 ```env
 AI_DATABASE_URL="postgresql://user:password@localhost:5432/app"
 ```
 
-If `AI_DATABASE_URL` is not set, the package falls back to `DATABASE_URL`.
+If `AI_DATABASE_URL` is not set, AI storage falls back to `DATABASE_URL` from
+the same `packages/db/.env` file.
 
 ## Should AI Storage Use The Same DB As The App?
 
@@ -307,8 +309,9 @@ Use Studio to inspect and run registered Mastra resources during development.
 monitoring as the app grows.
 
 The baseline package already stores AI runtime data through Mastra storage when
-`AI_DATABASE_URL` or `DATABASE_URL` is configured. Add explicit observability
-configuration later when you decide which backend should receive traces.
+`AI_DATABASE_URL` or `DATABASE_URL` is configured through `@workspace/db`. Add
+explicit observability configuration later when you decide which backend should
+receive traces.
 
 ## How A Weather Request Flows
 
@@ -908,7 +911,7 @@ AZURE_OPENAI_WEATHER_ITINERARY_DEPLOYMENT_NAME
 
 ### Memory is not working
 
-Check that one of these exists:
+Check that one of these exists in `packages/db/.env`:
 
 ```env
 AI_DATABASE_URL
@@ -920,7 +923,7 @@ If neither exists, `createConversationMemory()` returns `undefined`.
 ### Datasets or experiments do not persist
 
 Datasets and experiments require storage. Add `AI_DATABASE_URL` or
-`DATABASE_URL`.
+`DATABASE_URL` to `packages/db/.env`.
 
 ### The weather tool cannot find a city
 

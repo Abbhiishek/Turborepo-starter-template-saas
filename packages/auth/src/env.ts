@@ -1,4 +1,5 @@
 export type AuthRuntimeEnv = {
+  [key: string]: string | undefined;
   AUTH_ADMIN_ENABLED?: string;
   AUTH_ADMIN_ROLES?: string;
   AUTH_ADMIN_USER_IDS?: string;

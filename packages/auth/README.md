@@ -650,13 +650,14 @@ export type ActiveOrganization = typeof authClient.$Infer.ActiveOrganization;
 
 ## Environment Variables
 
+Auth env is scoped to `packages/auth/.env` for secrets, session defaults, auth
+feature flags, and OAuth provider credentials. Database credentials belong in
+`packages/db/.env`. App URLs and deployment/platform values belong in the
+consuming app, such as `apps/web/.env`.
+
 | Variable                                    | Purpose                                                     |
 | ------------------------------------------- | ----------------------------------------------------------- |
-| `DATABASE_URL`                              | Database connection string used by `@workspace/db`.         |
 | `BETTER_AUTH_SECRET`                        | Better Auth secret. Must be set in production.              |
-| `BETTER_AUTH_URL`                           | Canonical auth base URL.                                    |
-| `BETTER_AUTH_TRUSTED_ORIGINS`               | Comma-separated trusted origins.                            |
-| `AUTH_TRUSTED_ORIGINS`                      | Additional comma-separated trusted origins.                 |
 | `AUTH_FEATURES`                             | Comma-separated feature list, such as `admin,organization`. |
 | `AUTH_ADMIN_ENABLED`                        | Explicitly enable admin plugin when set to `true`.          |
 | `AUTH_ADMIN_ROLES`                          | Comma-separated Better Auth admin roles.                    |
@@ -672,11 +673,17 @@ and `openapi` both enable the OpenAPI feature.
 
 ```env
 BETTER_AUTH_SECRET="replace-with-at-least-32-random-characters"
-BETTER_AUTH_URL="http://localhost:3000"
-BETTER_AUTH_TRUSTED_ORIGINS="http://localhost:3000"
 AUTH_FEATURES="admin,organization"
 AUTH_ADMIN_ROLES="admin"
 AUTH_ORGANIZATION_TEAMS_ENABLED="true"
+```
+
+Put app URLs beside the app that owns them:
+
+```env
+# apps/web/.env
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+BETTER_AUTH_URL="http://localhost:3000"
 ```
 
 ## Schema And Migrations
@@ -790,4 +797,5 @@ export const auth = createAuth({
 - Do not enable every plugin globally because one app needs it.
 - Update `packages/auth/src/schema.ts` before generating schema for any
   schema-affecting plugin.
-- Always set `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL` in production.
+- Always set `BETTER_AUTH_SECRET` in the auth package environment and
+  `BETTER_AUTH_URL` in the consuming app environment in production.

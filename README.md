@@ -62,6 +62,16 @@ pnpm dev
 
 The web app runs from `apps/web`. Open the URL printed in the terminal (typically `http://localhost:3000`).
 
+Environment files are intentionally scoped to the app or package that owns the
+values. Do not create a root `.env` or root `.env.example`.
+
+| Owner           | Example file                 | Values kept there                                      |
+| --------------- | ---------------------------- | ------------------------------------------------------ |
+| `apps/web`      | `apps/web/.env.example`      | App URLs and deployment/platform-specific values       |
+| `packages/db`   | `packages/db/.env.example`   | All database credentials, including AI storage DB URLs |
+| `packages/ai`   | `packages/ai/.env.example`   | AI provider keys and model deployment names            |
+| `packages/auth` | `packages/auth/.env.example` | Auth secrets, sessions, flags, and provider secrets    |
+
 Other root scripts:
 
 | Command            | Description                     |
@@ -127,7 +137,9 @@ export const orgAdminAuth = createAuth({
 });
 ```
 
-Configure `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, and optional `AUTH_FEATURES` values from `.env.example`.
+Configure database credentials in `packages/db/.env`, auth secrets and feature
+flags in `packages/auth/.env`, and app URLs such as `BETTER_AUTH_URL` in
+`apps/web/.env`.
 
 **Validation (Zod)** — already available via the workspace catalog. Reference shared schemas from a `packages/validators` workspace or import directly in apps.
 
@@ -138,7 +150,11 @@ pnpm --filter @workspace/ai dev
 pnpm --filter @workspace/ai build
 ```
 
-Configure `AI_DATABASE_URL` when Mastra should use a different storage database than `DATABASE_URL`. Add agents by domain under `packages/ai/src/mastra/agents/*` and register the domain from `packages/ai/src/mastra/agents/index.ts`.
+Configure AI provider keys in `packages/ai/.env`. If Mastra should use a
+different storage database than `DATABASE_URL`, set `AI_DATABASE_URL` in
+`packages/db/.env` because it is still a database credential. Add agents by
+domain under `packages/ai/src/mastra/agents/*` and register the domain from
+`packages/ai/src/mastra/agents/index.ts`.
 
 The models folder exports provider-prefixed AI SDK models directly. For Azure OpenAI or Azure AI Foundry deployments:
 
@@ -188,7 +204,10 @@ Task configuration lives in `turbo.json`:
 - **`check-types`** — depends on upstream type checks.
 - **`dev`** — persistent, not cached.
 
-Environment files matching `.env*` are included as build inputs.
+The root `turbo.json` does not declare centralized `globalEnv`. It uses
+package-specific task entries, such as `web#build` and `@workspace/ai#build`,
+to keep env allowlists and `.env*` inputs scoped to the app or package that
+consumes those values.
 
 ## License
 
