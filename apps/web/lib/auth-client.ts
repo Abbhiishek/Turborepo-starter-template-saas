@@ -6,6 +6,8 @@ export const authClient = createWorkspaceAuthClient({
   baseURL: env.NEXT_PUBLIC_APP_URL,
   features: {
     admin: true,
-    organization: true,
+    organization: {
+
+    },
   },
 });

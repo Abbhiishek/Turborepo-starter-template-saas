@@ -6,10 +6,8 @@ import { db } from "@workspace/db";
 
 import { ac, roles } from "./access-control";
 import {
-  flagEnabled,
   getBetterAuthSecret,
   getRuntimeEnv,
-  parseCsv,
   type AuthRuntimeEnv,
 } from "./env";
 
@@ -36,9 +34,7 @@ export type CreateAuthOptions = Omit<
   trustedOrigins?: string[];
 };
 
-function normalizeFeatureOptions<T extends object>(
-  value: boolean | T | undefined,
-): T | undefined {
+function normalizeFeatureOptions<T extends object>(value: boolean | T | undefined): T | undefined {
   if (!value) {
     return undefined;
   }
@@ -56,34 +52,7 @@ function withDefaultOrganizationAccessControl(
   };
 }
 
-export function getAuthFeaturesFromEnv(
-  env: AuthRuntimeEnv = getRuntimeEnv(),
-): AuthFeatureFlags {
-  const adminRoles = parseCsv(env.AUTH_ADMIN_ROLES);
-  const adminUserIds = parseCsv(env.AUTH_ADMIN_USER_IDS);
-  const organizationTeamsEnabled = env.AUTH_ORGANIZATION_TEAMS_ENABLED;
-
-  return {
-    admin: flagEnabled(env, "admin", "AUTH_ADMIN_ENABLED")
-      ? {
-          ...(adminRoles.length > 0 ? { adminRoles } : {}),
-          ...(adminUserIds.length > 0 ? { adminUserIds } : {}),
-        }
-      : false,
-    organization: flagEnabled(env, "organization", "AUTH_ORGANIZATION_ENABLED")
-      ? {
-          ...(organizationTeamsEnabled
-            ? { teams: { enabled: organizationTeamsEnabled } }
-            : {}),
-        }
-      : false,
-    openAPI: flagEnabled(env, "open-api", "AUTH_OPENAPI_ENABLED"),
-  };
-}
-
-export function createAuthPlugins(
-  features: AuthFeatureFlags = {},
-): BetterAuthPlugin[] {
+export function createAuthPlugins(features: AuthFeatureFlags = {}): BetterAuthPlugin[] {
   const plugins: BetterAuthPlugin[] = [];
   const adminOptions = normalizeFeatureOptions(features.admin);
   const organizationOptions = normalizeFeatureOptions(features.organization);
@@ -107,9 +76,7 @@ export function createAuthPlugins(
   return plugins;
 }
 
-export function createAuthOptions(
-  options: CreateAuthOptions = {},
-): BetterAuthOptions {
+export function createAuthOptions(options: CreateAuthOptions = {}): BetterAuthOptions {
   const {
     baseURL,
     emailAndPassword,
@@ -123,8 +90,6 @@ export function createAuthOptions(
   } = options;
   const env = runtimeEnv ?? getRuntimeEnv();
   const trustedOrigins = [
-    ...parseCsv(env.BETTER_AUTH_TRUSTED_ORIGINS),
-    ...parseCsv(env.AUTH_TRUSTED_ORIGINS),
     ...(optionTrustedOrigins ?? []),
   ];
 
@@ -145,19 +110,19 @@ export function createAuthOptions(
     socialProviders: {
       ...(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET
         ? {
-            github: {
-              clientId: env.GITHUB_CLIENT_ID,
-              clientSecret: env.GITHUB_CLIENT_SECRET,
-            },
-          }
+          github: {
+            clientId: env.GITHUB_CLIENT_ID,
+            clientSecret: env.GITHUB_CLIENT_SECRET,
+          },
+        }
         : {}),
       ...(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
         ? {
-            google: {
-              clientId: env.GOOGLE_CLIENT_ID,
-              clientSecret: env.GOOGLE_CLIENT_SECRET,
-            },
-          }
+          google: {
+            clientId: env.GOOGLE_CLIENT_ID,
+            clientSecret: env.GOOGLE_CLIENT_SECRET,
+          },
+        }
         : {}),
       ...(socialProviders ?? {}),
     },
@@ -173,7 +138,7 @@ export function createAuthOptions(
       },
       ...(session ?? {}),
     },
-    plugins: createAuthPlugins(features ?? getAuthFeaturesFromEnv(env)),
+    plugins: createAuthPlugins(features),
   } satisfies BetterAuthOptions;
 }
 
